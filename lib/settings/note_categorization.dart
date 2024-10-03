@@ -1,5 +1,9 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_iconpicker_plus/flutter_iconpicker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:smart_notes/notes/note_model.dart';
 import 'package:smart_notes/settings/category_model.dart';
 import 'package:uuid/uuid.dart';
 import 'package:smart_notes/database/database_helper.dart';
@@ -17,19 +21,32 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
   Color? themeColor;
   String? fontFamily;
   List<CategoryModel> categories = [];
+  List<NoteModel> notes = [];
+
+  Future<void> fetchNotes() async {
+    final directory = await getApplicationDocumentsDirectory();
+    final noteFiles =
+        directory.listSync().where((file) => file.path.endsWith('.json'));
+    List<NoteModel> loadedNotes = [];
+    for (var file in noteFiles) {
+      final noteContent = await File(file.path).readAsString();
+      final noteJson = jsonDecode(noteContent);
+      loadedNotes.add(NoteModel.fromJson(noteJson));
+    }
+    setState(() {
+      notes = loadedNotes;
+    });
+  }
 
   void _pickIcon() async {
     IconData? icon =
         await FlutterIconPicker.showIconPicker(context, iconPackModes: [
-      IconPack.lineAwesomeIcons,
       IconPack.material,
-      IconPack.fontAwesomeIcons,
-      IconPack.cupertino
     ]);
     if (icon != null) {
       setState(() {
         iconData = icon;
-        fontFamily = icon.fontFamily ?? 'MaterialIcons';
+        fontFamily = 'MaterialIcons';
       });
     }
   }
@@ -453,7 +470,7 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
         categoryTitle: controller.text.trim(),
         categoryColor: colorHex,
         categoryIcon: iconCodePoint,
-        fontFamily: fontFamily ?? 'MaterialIcons');
+        fontFamily: 'MaterialIcons');
 
     await DatabaseHelper().insertCategory(newCategory);
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -469,6 +486,7 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
 
   @override
   Widget build(BuildContext context) {
+    var height = MediaQuery.of(context).size.height;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Categorize Your Notes'),
@@ -477,9 +495,33 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
         padding: const EdgeInsets.all(8.0),
         child: Column(
           children: <Widget>[
+            Container(
+              decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12)),
+              child: const Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: <Widget>[
+                      Icon(Icons.help, color: Colors.green),
+                      Expanded(
+                          child: Text(
+                        'Specify category name, icon and theme then press the add category button to add a new category',
+                        style: TextStyle(color: Colors.green),
+                        textAlign: TextAlign.justify,
+                      ))
+                    ]),
+              ),
+            ),
+            SizedBox(height: height * 0.02),
             TextField(
               controller: controller,
-              decoration: const InputDecoration(labelText: 'Category Name'),
+              decoration: InputDecoration(
+                  labelText: 'Category Name',
+                  border: OutlineInputBorder(
+                      borderSide: const BorderSide(color: Colors.tealAccent),
+                      borderRadius: BorderRadius.circular(12))),
             ),
             Row(mainAxisAlignment: MainAxisAlignment.center, children: <Widget>[
               ElevatedButton(
@@ -504,7 +546,7 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
                     if (categories.isNotEmpty) {
                       CategoryModel category = categories[index];
                       IconData iconData = IconData(category.categoryIcon,
-                          fontFamily: 'MaterialIcons');
+                          fontFamily: category.fontFamily);
                       Color color =
                           Color(int.parse(category.categoryColor, radix: 16));
                       return ListTile(
@@ -512,11 +554,18 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
                           title: Text(category.categoryTitle),
                           subtitle: Text('${category.categoryTitle} note'),
                           tileColor: color.withOpacity(0.1),
-                          trailing: IconButton(
-                              onPressed: () {
-                                _deleteCategory(category);
-                              },
-                              icon: const Icon(Icons.delete)));
+                          trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                IconButton(
+                                    onPressed: () {
+                                      _deleteCategory(category);
+                                    },
+                                    icon: const Icon(Icons.delete)),
+                                IconButton(
+                                    onPressed: () {},
+                                    icon: const Icon(Icons.edit))
+                              ]));
                     } else {
                       return const Text('You have no note categories created');
                     }
@@ -528,6 +577,3 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
     );
   }
 }
-
-//TODO: There should be default category to handle notes with no category or notes with deleted categories
-//TODO: Add tile color property and icon color property to list tile of the list view builder

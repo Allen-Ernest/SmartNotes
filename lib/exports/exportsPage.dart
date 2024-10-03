@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:smart_notes/exports/export_model.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:open_file/open_file.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class ExportsPage extends StatefulWidget {
   const ExportsPage({super.key});
@@ -10,8 +13,21 @@ class ExportsPage extends StatefulWidget {
 
 class _ExportsPageState extends State<ExportsPage> {
   List<ExportModel> pdfExports = [];
+  bool isLoading = true;
 
-  void _fetchPDFExports() async {}
+  void _fetchPDFExports() async {
+    bool isPermissionGranted = await _requestPermission();
+    if (isPermissionGranted){
+      final directory = getExternalStorageDirectory();
+    }
+  }
+  Future<bool> _requestPermission() async {
+    await Permission.storage.request();
+    if (await Permission.storage.isGranted){
+      return true;
+    }
+    return false;
+  }
   bool _isSearchEnabled = false;
 
   @override

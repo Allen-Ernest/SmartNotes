@@ -2,6 +2,7 @@ class NoteModel {
   String noteId;
   String noteTitle;
   String noteType;
+  String noteContent;
   DateTime dateCreated;
   bool hasReminder;
   bool isBookmarked;
@@ -12,6 +13,7 @@ class NoteModel {
       {required this.noteId,
       required this.noteTitle,
       required this.noteType,
+      required this.noteContent,
       required this.dateCreated,
       this.isLocked = false,
       this.hasReminder = false,
@@ -22,10 +24,11 @@ class NoteModel {
         'noteId': noteId,
         'noteTitle': noteTitle,
         'noteType': noteType,
+        'content': noteContent,
         'dateCreated': dateCreated.toIso8601String(),
         'hasReminder': hasReminder,
         'isBookmarked': isBookmarked,
-        'reminderTime': reminderTime.toString(),
+        'reminderTime': reminderTime?.toIso8601String(),
         'isLocked': isLocked
       };
 
@@ -33,9 +36,10 @@ class NoteModel {
       noteId: json['noteId'],
       noteTitle: json['noteTitle'],
       noteType: json['noteType'],
+      noteContent: json['content'],
       dateCreated: DateTime.parse(json['dateCreated']),
       hasReminder: json['hasReminder'] ?? false,
       isLocked: json['isLocked'] ?? false,
       reminderTime:
-          json['reminderTime'] != null ? DateTime.parse('reminderTime') : null);
+          json['reminderTime'] != null ? DateTime.parse(json['reminderTime']) : null);
 }

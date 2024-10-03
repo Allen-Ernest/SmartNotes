@@ -1,7 +1,18 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill_extensions/flutter_quill_extensions.dart';
+import 'package:smart_notes/notes/note_model.dart';
 import 'package:speech_to_text/speech_to_text.dart';
+import 'package:flutter_quill_to_pdf/flutter_quill_to_pdf.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:open_file/open_file.dart';
+import 'package:uuid/uuid.dart';
+import 'package:smart_notes/database/database_helper.dart';
+import 'package:smart_notes/settings/category_model.dart';
 
 class CreateNote extends StatefulWidget {
   const CreateNote({super.key});
@@ -15,6 +26,15 @@ class _CreateNoteState extends State<CreateNote> {
   final QuillController _quillController = QuillController.basic();
   late SpeechToText _speech;
   bool isListening = false;
+  List<CategoryModel> noteCategories = [];
+  TextEditingController categoryController = TextEditingController();
+
+  void fetchNoteCategories() async {
+    List<CategoryModel> categories = await DatabaseHelper().getCategories();
+    setState(() {
+      noteCategories = categories;
+    });
+  }
 
   void _startListening() async {
     if (isListening) return;
@@ -78,13 +98,187 @@ class _CreateNoteState extends State<CreateNote> {
     });
   }
 
-  Future<void> _saveNote() async {}
+  Future<void> _saveNote() async {
+    String noteId = const Uuid().v4();
+    String? noteTitle = await _getNoteData();
+    String noteCategory = categoryController.text.trim();
+    final noteContent =
+        jsonEncode(_quillController.document.toDelta().toJson());
+    final directory = await getApplicationDocumentsDirectory();
+    if (noteTitle == null || noteTitle.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Title can not be empty')));
+      return;
+    }
+    if (noteCategory.isEmpty) {
+      setState(() {
+        noteCategory = 'Default';
+      });
+    }
+    final note = NoteModel(
+        noteId: noteId,
+        noteTitle: noteTitle,
+        noteType: noteCategory,
+        noteContent: noteContent,
+        dateCreated: DateTime.now());
 
-  void _exportToPDF() {}
+    final file = File('${directory.path}/$noteTitle.json');
+    if (await file.exists()) {
+      final overwrite = await _confirmOverwrite();
+      if (!overwrite) {
+        return;
+      }
+    }
+    await file.writeAsString(jsonEncode(note.toJSon()));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Note Saved Successfully')));
+    Navigator.pushNamedAndRemoveUntil(
+        context, '/home', (Route<dynamic> route) => false);
+  }
+
+  Future<bool> _confirmOverwrite() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Overwrite Warning'),
+          content:
+              const Text('A note with this title already exists. Overwrite?'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(true);
+              },
+              child: const Text('YES'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(false);
+              },
+              child: const Text('NO'),
+            ),
+          ],
+        );
+      },
+    );
+    return result ?? false;
+  }
+
+  Future<String?> _getNoteData() async {
+    TextEditingController controller = TextEditingController();
+    var width = MediaQuery.of(context).size.width;
+    var height = MediaQuery.of(context).size.height;
+    return showDialog(
+        context: context,
+        builder: (BuildContext context) => StatefulBuilder(
+            builder: (BuildContext context, StateSetter setDialogState) =>
+                AlertDialog(
+                  title: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [Text('Save Note')]),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      TextField(
+                        controller: controller,
+                        decoration: InputDecoration(
+                            labelText: 'Note Title',
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12))),
+                      ),
+                      SizedBox(height: height * 0.03),
+                      DropdownMenu(
+                          hintText: 'Select Note Category',
+                          controller: categoryController,
+                          dropdownMenuEntries: noteCategories
+                              .map<DropdownMenuEntry<String>>((category) {
+                            return DropdownMenuEntry<String>(
+                                value: category.categoryId,
+                                label: category.categoryTitle,
+                                leadingIcon: Icon(IconData(
+                                    category.categoryIcon,
+                                    fontFamily: category.fontFamily)));
+                          }).toList()),
+                      Container(
+                          decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              color: Colors.green.withOpacity(0.1)),
+                          child: const Text(
+                              'You can add new categories in settings')),
+                    ],
+                  ),
+                  actions: <Widget>[
+                    TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop(controller.text.trim());
+                        },
+                        child: const Text('Save')),
+                    TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                        child: const Text('Cancel'))
+                  ],
+                )));
+  }
+
+  void _exportToPDF() async {
+    await _requestPermission();
+
+    final folder = await _createFolder();
+    final String filePath =
+        '${folder.path}/note_${DateTime.now().millisecondsSinceEpoch}.pdf';
+    final PDFPageFormat pageFormat = PDFPageFormat.all(
+        width: PDFPageFormat.a4.width,
+        height: PDFPageFormat.a4.height,
+        margin: 10.0);
+
+    PDFConverter pdfConverter = PDFConverter(
+        pageFormat: pageFormat,
+        document: _quillController.document.toDelta(),
+        fallbacks: []);
+    await pdfConverter.createDocumentFile(path: filePath);
+    ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('PDF saved successfully to ${folder.path}')));
+
+    final result = await OpenFile.open(filePath);
+    if (result.type != ResultType.done) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error opening the PDF: ${result.message}')),
+      );
+    }
+  }
+
+  Future<void> _requestPermission() async {
+    await Permission.storage.request();
+    if (await Permission.storage.isGranted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Storage Permission is required')));
+  }
+
+  Future<Directory> _createFolder() async {
+    Directory? directory;
+
+    if (Platform.isAndroid) {
+      directory = await getExternalStorageDirectory();
+    } else if (Platform.isIOS) {
+      directory = await getApplicationDocumentsDirectory();
+    }
+
+    final path = Directory('${directory!.path}/PDF exports');
+
+    if (!(await path.exists())) {
+      await path.create();
+    }
+    return path;
+  }
 
   @override
   initState() {
     _speech = SpeechToText();
+    fetchNoteCategories();
     super.initState();
   }
 
