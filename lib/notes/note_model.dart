@@ -20,7 +20,7 @@ class NoteModel {
       this.isBookmarked = false,
       this.reminderTime});
 
-  Map<String, dynamic> toJSon() => {
+  Map<String, dynamic> toJson() => {
         'noteId': noteId,
         'noteTitle': noteTitle,
         'noteType': noteType,

@@ -13,16 +13,27 @@ class BookmarksPage extends StatefulWidget {
 
 class _BookmarksPageState extends State<BookmarksPage> {
   List<NoteModel> bookmarkedNotes = [];
+  bool isLoading = true;
 
   void fetchBookmarks() async {
     final directory = await getApplicationDocumentsDirectory();
-    final noteFiles = directory.listSync().where((file) => file.path.endsWith('.json'));
+    final noteFiles =
+        directory.listSync().where((file) => file.path.endsWith('.json'));
+
     List<NoteModel> loadedNotes = [];
-    for (var file in noteFiles){
+    for (var file in noteFiles) {
       final noteContent = await File(file.path).readAsString();
       final noteJson = jsonDecode(noteContent);
-      loadedNotes.add(NoteModel.fromJson(noteJson));
+      final note = NoteModel.fromJson(noteJson);
+
+      if (note.isBookmarked) {
+        loadedNotes.add(note);
+      }
     }
+    setState(() {
+      bookmarkedNotes = loadedNotes;
+      isLoading = false;
+    });
   }
 
   @override
@@ -35,10 +46,33 @@ class _BookmarksPageState extends State<BookmarksPage> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(title: const Text('Bookmarks'), actions: <Widget>[
-      IconButton(onPressed: () {}, icon: const Icon(Icons.search)),
-      IconButton(
-          onPressed: () {},
-          icon: const Icon(Icons.delete_forever, color: Colors.tealAccent))
-    ]));
+          IconButton(
+              onPressed: () {Navigator.pushNamed(context, '/search_bookmarks');},
+              icon: const Icon(Icons.search, color: Colors.green)),
+          IconButton(
+              onPressed: () {},
+              icon: const Icon(Icons.delete_forever, color: Colors.green))
+        ]),
+        body: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(color: Colors.green),
+                  )
+                : bookmarkedNotes.isEmpty
+                    ? const Center(child: Text('No bookmarks'))
+                    : ListView.builder(
+                        itemCount: bookmarkedNotes.length,
+                        itemBuilder: (context, index) {
+                          NoteModel note = bookmarkedNotes[index];
+                          return ListTile(
+                            leading: const Icon(Icons.note),
+                            title: Text(note.noteTitle),
+                            trailing: IconButton(
+                                onPressed: () {},
+                                icon: const Icon(Icons.more_vert)),
+                            onTap: () {},
+                          );
+                        })));
   }
 }

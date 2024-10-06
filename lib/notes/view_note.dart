@@ -11,9 +11,9 @@ import 'dart:io';
 import 'package:speech_to_text/speech_to_text.dart';
 
 class NoteViewingPage extends StatefulWidget {
-  NoteViewingPage({super.key, required this.note});
+  const NoteViewingPage({super.key, required this.note});
 
-  NoteModel note;
+  final NoteModel note;
 
   @override
   State<NoteViewingPage> createState() => _NoteViewingPageState();
@@ -21,7 +21,7 @@ class NoteViewingPage extends StatefulWidget {
 
 class _NoteViewingPageState extends State<NoteViewingPage> {
   bool isToolbarExpanded = true;
-  final QuillController _quillController = QuillController.basic();
+  QuillController _quillController = QuillController.basic();
   late SpeechToText _speech;
   bool isListening = false;
 
@@ -39,7 +39,7 @@ class _NoteViewingPageState extends State<NoteViewingPage> {
       dateCreated: DateTime.now()
     );
     final file = File('${directory.path}/$noteTitle.json');
-    await file.writeAsString(jsonEncode(note.toJSon()));
+    await file.writeAsString(jsonEncode(note.toJson()));
     ScaffoldMessenger.of(context)
         .showSnackBar(const SnackBar(content: Text('Changes Saved Successfully')));
     Navigator.pushNamedAndRemoveUntil(
@@ -159,6 +159,17 @@ class _NoteViewingPageState extends State<NoteViewingPage> {
     setState(() {
       isListening = false;
     });
+  }
+
+  void getNoteContent(){
+    final document = Document.fromJson(jsonDecode(widget.note.noteContent));
+    _quillController = QuillController(document: document, selection: const TextSelection.collapsed(offset: 0));
+  }
+
+  @override
+  void initState() {
+    getNoteContent();
+    super.initState();
   }
 
   @override

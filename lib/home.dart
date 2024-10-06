@@ -8,6 +8,8 @@ import 'package:getwidget/getwidget.dart';
 import 'package:smart_notes/database/database_helper.dart';
 import 'package:smart_notes/settings/category_model.dart';
 import 'package:uuid/uuid.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:animations/animations.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -18,8 +20,10 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int currentIndex = 0;
+  String groupValue = 'dateCreated';
 
-  final StreamController<String> _sortingStreamController = StreamController<String>();
+  final StreamController<String> _sortingStreamController =
+      StreamController<String>.broadcast();
 
   void onItemTapped(index) {
     setState(() {
@@ -55,12 +59,12 @@ class _HomePageState extends State<HomePage> {
         });
   }
 
-  void sortNotes() {
+  void sortNotes() async {
+    SharedPreferences preferences = await SharedPreferences.getInstance();
     showModalBottomSheet(
         showDragHandle: true,
         context: context,
         builder: (BuildContext context) {
-          String groupValue = 'dateCreated';
           return ListView(children: <Widget>[
             const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -73,6 +77,7 @@ class _HomePageState extends State<HomePage> {
                   setState(() {
                     groupValue = value!;
                   });
+                  preferences.setString('sortingOption', value!);
                   _sortingStreamController.add(groupValue);
                   Navigator.of(context).pop();
                 }),
@@ -84,6 +89,7 @@ class _HomePageState extends State<HomePage> {
                 setState(() {
                   groupValue = value!;
                 });
+                preferences.setString('sortingOption', value!);
                 _sortingStreamController.add(groupValue);
                 Navigator.of(context).pop();
               },
@@ -96,6 +102,7 @@ class _HomePageState extends State<HomePage> {
                 setState(() {
                   groupValue = value!;
                 });
+                preferences.setString('sortingOption', value!);
                 _sortingStreamController.add(groupValue);
                 Navigator.of(context).pop();
               },
@@ -120,6 +127,16 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  void _loadSortingOption() async {
+    SharedPreferences preferences = await SharedPreferences.getInstance();
+    String? sortingOption = preferences.getString('sortingOption');
+    if (sortingOption != null) {
+      setState(() {
+        groupValue = sortingOption;
+      });
+    }
+  }
+
   @override
   void dispose() {
     _sortingStreamController.close();
@@ -128,6 +145,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void initState() {
+    _loadSortingOption();
     _loadCategories();
     super.initState();
   }
@@ -147,7 +165,10 @@ class _HomePageState extends State<HomePage> {
               onPressed: () {
                 sortNotes();
               },
-              icon: const Icon(Icons.sort))
+              icon: const Icon(
+                Icons.sort,
+                color: Colors.green,
+              ))
         ],
       ),
       AppBar(title: const Text('Search')),
@@ -157,7 +178,19 @@ class _HomePageState extends State<HomePage> {
       appBar: appBars[currentIndex],
       body: Padding(
         padding: const EdgeInsets.all(8.0),
-        child: pages[currentIndex],
+        child: PageTransitionSwitcher(
+            duration: const Duration(milliseconds: 300),
+            reverse: currentIndex < pages.indexOf(pages[currentIndex]),
+            transitionBuilder: (Widget child,
+                Animation<double> primaryAnimation,
+                Animation<double> secondaryAnimation) {
+              return SharedAxisTransition(
+                  animation: primaryAnimation,
+                  secondaryAnimation: secondaryAnimation,
+                  transitionType: SharedAxisTransitionType.horizontal,
+                  child: child);
+            },
+            child: pages[currentIndex]),
       ),
       floatingActionButton: FloatingActionButton(
           onPressed: () {
@@ -172,6 +205,7 @@ class _HomePageState extends State<HomePage> {
         ],
         onTap: onItemTapped,
         currentIndex: currentIndex,
+        selectedItemColor: Colors.green,
       ),
     );
   }

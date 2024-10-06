@@ -112,7 +112,7 @@ class _CreateNoteState extends State<CreateNote> {
     }
     if (noteCategory.isEmpty) {
       setState(() {
-        noteCategory = 'Default';
+        noteCategory = 'General';
       });
     }
     final note = NoteModel(
@@ -129,7 +129,7 @@ class _CreateNoteState extends State<CreateNote> {
         return;
       }
     }
-    await file.writeAsString(jsonEncode(note.toJSon()));
+    await file.writeAsString(jsonEncode(note.toJson()));
     ScaffoldMessenger.of(context)
         .showSnackBar(const SnackBar(content: Text('Note Saved Successfully')));
     Navigator.pushNamedAndRemoveUntil(
@@ -199,12 +199,22 @@ class _CreateNoteState extends State<CreateNote> {
                                     category.categoryIcon,
                                     fontFamily: category.fontFamily)));
                           }).toList()),
+                      SizedBox(height: height * 0.03),
                       Container(
                           decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(12),
                               color: Colors.green.withOpacity(0.1)),
-                          child: const Text(
-                              'You can add new categories in settings')),
+                          child: const Padding(
+                            padding: EdgeInsets.all(8.0),
+                            child: Column(
+                              children: [
+                                Icon(Icons.campaign, color: Colors.green,),
+                                Text(
+                                    'You can add new categories in settings',
+                                    style: TextStyle(color: Colors.green)),
+                              ],
+                            ),
+                          )),
                     ],
                   ),
                   actions: <Widget>[

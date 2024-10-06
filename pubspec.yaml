@@ -43,13 +43,11 @@ dependencies:
   uuid: ^4.5.1
   speech_to_text: ^7.0.0
   awesome_notifications: ^0.9.3+1
-  syncfusion_flutter_charts: ^27.1.50
   animations: ^2.0.11
   sqflite: ^2.3.3+2
   permission_handler: ^11.3.1
   getwidget: ^4.0.0
   provider: ^6.1.2
-  flutter_expandable_table: ^2.1.0
   flutter_secure_storage: ^9.2.2
   flutter_quill_to_pdf: ^2.2.5
   open_file: ^3.5.7

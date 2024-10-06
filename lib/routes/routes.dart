@@ -7,6 +7,8 @@ import 'package:smart_notes/bookmarks/bookmarksPage.dart';
 import 'package:smart_notes/settings/note_categorization.dart';
 import 'package:smart_notes/settings/settingsPage.dart';
 import 'package:smart_notes/settings/note_locking_page.dart';
+import 'package:smart_notes/exports/search_for_exports.dart';
+import 'package:smart_notes/bookmarks/search_for_bookmarks.dart';
 
 Map<String, Widget Function(BuildContext)> routes = {
   '/home': (context) => const HomePage(),
@@ -16,5 +18,9 @@ Map<String, Widget Function(BuildContext)> routes = {
   '/exports': (context) => const ExportsPage(),
   '/settings': (context) => const SettingsPage(),
   '/category': (context) => const NoteCategorizationPage(),
-  '/lock_note': (context) => const NoteLockingPage()
+  '/lock_note': (context) => const NoteLockingPage(),
+  '/search_bookmarks': (context) => const SearchForBookmarks(),
+  '/search_exports': (context) => const SearchForExports(
+        exports: [],
+      )
 };

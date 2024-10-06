@@ -429,6 +429,16 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
             ));
   }
 
+  Future<bool> _checkIfCategoryAlreadyExists(CategoryModel category) async {
+    for (var existingCategory in categories) {
+      if (existingCategory.categoryTitle.trim().toLowerCase() ==
+          category.categoryTitle.trim().toLowerCase()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   void _loadCategories() async {
     List<CategoryModel> savedCategories =
         await DatabaseHelper().getCategories();
@@ -444,6 +454,11 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
     });
     ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Removed category ${category.categoryTitle}')));
+  }
+
+  String _capitalizeFirstLetter(String input) {
+    if (input.isEmpty) return input;
+    return input[0].toUpperCase() + input.substring(1);
   }
 
   void _addCategory() async {
@@ -462,15 +477,24 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
           const SnackBar(content: Text('Please add a category theme')));
       return;
     }
+    String categoryTitle = _capitalizeFirstLetter(controller.text.trim());
     String categoryId = const Uuid().v4();
     String colorHex = themeColor!.value.toRadixString(16);
     int iconCodePoint = iconData!.codePoint;
     final CategoryModel newCategory = CategoryModel(
         categoryId: categoryId,
-        categoryTitle: controller.text.trim(),
+        categoryTitle: categoryTitle,
         categoryColor: colorHex,
         categoryIcon: iconCodePoint,
         fontFamily: 'MaterialIcons');
+
+    bool doesCategoryExist = await _checkIfCategoryAlreadyExists(newCategory);
+    if (doesCategoryExist) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content:
+              Text('Category "${newCategory.categoryTitle}" already exists')));
+      return;
+    }
 
     await DatabaseHelper().insertCategory(newCategory);
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -519,9 +543,12 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
               controller: controller,
               decoration: InputDecoration(
                   labelText: 'Category Name',
-                  border: OutlineInputBorder(
-                      borderSide: const BorderSide(color: Colors.tealAccent),
-                      borderRadius: BorderRadius.circular(12))),
+                  enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colors.green)),
+                  focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colors.green))),
             ),
             Row(mainAxisAlignment: MainAxisAlignment.center, children: <Widget>[
               ElevatedButton(
