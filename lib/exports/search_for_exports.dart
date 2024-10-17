@@ -41,6 +41,9 @@ class _SearchForExportsState extends State<SearchForExports> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Search for exports')
+      ),
         body: Padding(
             padding: const EdgeInsets.all(8.0),
             child: Column(children: <Widget>[
@@ -48,6 +51,7 @@ class _SearchForExportsState extends State<SearchForExports> {
                   controller: controller,
                   decoration: InputDecoration(
                       labelText: 'Search for exports',
+                      icon: const Icon(Icons.search, color: Colors.green),
                       enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(color: Colors.green)),
@@ -75,7 +79,7 @@ class _ExportSearchResultsState extends State<ExportSearchResults> {
       return const Center(child: Text('No exports found'));
     }
 
-    void _deletePDF(String path) async {
+    void deletePDF(String path) async {
       File file = File(path);
       if (await file.exists()) {
         file.delete();
@@ -190,7 +194,7 @@ class _ExportSearchResultsState extends State<ExportSearchResults> {
                   icon: const Icon(Icons.abc)),
               IconButton(
                   onPressed: () {
-                    _deletePDF(export.exportPath);
+                    deletePDF(export.exportPath);
                   },
                   icon: const Icon(Icons.delete_forever))
             ]),

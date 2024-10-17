@@ -104,7 +104,6 @@ class _CreateNoteState extends State<CreateNote> {
     String noteCategory = categoryController.text.trim();
     final noteContent =
         jsonEncode(_quillController.document.toDelta().toJson());
-    final directory = await getApplicationDocumentsDirectory();
     if (noteTitle == null || noteTitle.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Title can not be empty')));
@@ -115,6 +114,7 @@ class _CreateNoteState extends State<CreateNote> {
         noteCategory = 'General';
       });
     }
+
     final note = NoteModel(
         noteId: noteId,
         noteTitle: noteTitle,
@@ -122,46 +122,11 @@ class _CreateNoteState extends State<CreateNote> {
         noteContent: noteContent,
         dateCreated: DateTime.now());
 
-    final file = File('${directory.path}/$noteTitle.json');
-    if (await file.exists()) {
-      final overwrite = await _confirmOverwrite();
-      if (!overwrite) {
-        return;
-      }
-    }
-    await file.writeAsString(jsonEncode(note.toJson()));
+    await DatabaseHelper().insertNote(note);
     ScaffoldMessenger.of(context)
         .showSnackBar(const SnackBar(content: Text('Note Saved Successfully')));
     Navigator.pushNamedAndRemoveUntil(
         context, '/home', (Route<dynamic> route) => false);
-  }
-
-  Future<bool> _confirmOverwrite() async {
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Overwrite Warning'),
-          content:
-              const Text('A note with this title already exists. Overwrite?'),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(true);
-              },
-              child: const Text('YES'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(false);
-              },
-              child: const Text('NO'),
-            ),
-          ],
-        );
-      },
-    );
-    return result ?? false;
   }
 
   Future<String?> _getNoteData() async {
@@ -176,46 +141,50 @@ class _CreateNoteState extends State<CreateNote> {
                   title: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [Text('Save Note')]),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      TextField(
-                        controller: controller,
-                        decoration: InputDecoration(
-                            labelText: 'Note Title',
-                            border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12))),
-                      ),
-                      SizedBox(height: height * 0.03),
-                      DropdownMenu(
-                          hintText: 'Select Note Category',
-                          controller: categoryController,
-                          dropdownMenuEntries: noteCategories
-                              .map<DropdownMenuEntry<String>>((category) {
-                            return DropdownMenuEntry<String>(
-                                value: category.categoryId,
-                                label: category.categoryTitle,
-                                leadingIcon: Icon(IconData(
-                                    category.categoryIcon,
-                                    fontFamily: category.fontFamily)));
-                          }).toList()),
-                      SizedBox(height: height * 0.03),
-                      Container(
-                          decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              color: Colors.green.withOpacity(0.1)),
-                          child: const Padding(
-                            padding: EdgeInsets.all(8.0),
-                            child: Column(
-                              children: [
-                                Icon(Icons.campaign, color: Colors.green,),
-                                Text(
-                                    'You can add new categories in settings',
-                                    style: TextStyle(color: Colors.green)),
-                              ],
-                            ),
-                          )),
-                    ],
+                  content: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        TextField(
+                          controller: controller,
+                          decoration: InputDecoration(
+                              labelText: 'Note Title',
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12))),
+                        ),
+                        SizedBox(height: height * 0.03),
+                        DropdownMenu(
+                            hintText: 'Select Note Category',
+                            controller: categoryController,
+                            dropdownMenuEntries: noteCategories
+                                .map<DropdownMenuEntry<String>>((category) {
+                              return DropdownMenuEntry<String>(
+                                  value: category.categoryId,
+                                  label: category.categoryTitle,
+                                  leadingIcon: Icon(IconData(
+                                      category.categoryIcon,
+                                      fontFamily: category.fontFamily)));
+                            }).toList()),
+                        SizedBox(height: height * 0.03),
+                        Container(
+                            decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12),
+                                color: Colors.green.withOpacity(0.1)),
+                            child: const Padding(
+                              padding: EdgeInsets.all(8.0),
+                              child: Column(
+                                children: [
+                                  Icon(
+                                    Icons.campaign,
+                                    color: Colors.green,
+                                  ),
+                                  Text('You can add new categories in settings',
+                                      style: TextStyle(color: Colors.green)),
+                                ],
+                              ),
+                            )),
+                      ],
+                    ),
                   ),
                   actions: <Widget>[
                     TextButton(

@@ -1,6 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:smart_notes/settings/category_model.dart';
+import 'package:smart_notes/notes/note_model.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
@@ -19,7 +20,7 @@ class DatabaseHelper {
   }
 
   Future<Database> _initDatabase() async {
-    String path = join(await getDatabasesPath(), 'categories_database.db');
+    String path = join(await getDatabasesPath(), 'my_notebook_database.db');
     return await openDatabase(path, version: 1, onCreate: _onCreate);
   }
 
@@ -31,6 +32,18 @@ class DatabaseHelper {
     categoryColor,
     categoryIcon, 
     fontFamily)
+    ''');
+
+    await db.execute(''' 
+    noteId TEXT PRIMARY KEY,
+    noteTitle TEXT,
+    noteType TEXT,
+    noteContent TEXT,
+    dateCreated TEXT,
+    hasReminder INTEGER,
+    isBookmarked INTEGER,
+    isLocked INTEGER,
+    reminderTime TEXT
     ''');
   }
 
@@ -59,5 +72,29 @@ class DatabaseHelper {
         'note_categories',
       where: 'categoryId = ?', whereArgs: [categoryId]
     );
+  }
+
+  Future<int> insertNote(NoteModel note) async {
+    Database db = await database;
+    return await db.insert('notes', note.toJson(), conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<List<NoteModel>> getNotes() async {
+    Database db = await database;
+    final List<Map<String, dynamic>> maps = await db.query('notes');
+
+    return List.generate(maps.length, (i) {
+      return NoteModel.fromJson(maps[i]);
+    });
+  }
+
+  Future<int> updateNote(NoteModel note) async {
+    Database db = await database;
+    return await db.update('notes', note.toJson(), where: 'noteId = ?', whereArgs: [note.noteId]);
+  }
+
+  Future<int> deleteNote(String noteId) async {
+    Database db = await database;
+    return await db.delete('notes', where: 'noteId = ?', whereArgs: [noteId]);
   }
 }

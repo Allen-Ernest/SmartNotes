@@ -1,16 +1,15 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_quill/flutter_quill.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:smart_notes/notes/note_model.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:smart_notes/notes/view_note.dart';
+import 'package:smart_notes/database/database_helper.dart';
 
 class NotePage extends StatefulWidget {
-  final Stream<String> sortingStream;
-
-  const NotePage({super.key, required this.sortingStream});
+  const NotePage({super.key});
 
   @override
   State<NotePage> createState() => _NotePageState();
@@ -20,81 +19,48 @@ class _NotePageState extends State<NotePage> {
   List<NoteModel> notes = [];
   bool isLoading = true;
 
-  Future<void> fetchNotes() async {
-    final directory = await getApplicationDocumentsDirectory();
-    final noteFiles =
-        directory.listSync().where((file) => file.path.endsWith('.json'));
-    List<NoteModel> loadedNotes = [];
-    for (var file in noteFiles) {
-      final noteContent = await File(file.path).readAsString();
-      final noteJson = jsonDecode(noteContent);
-      loadedNotes.add(NoteModel.fromJson(noteJson));
-    }
+
+  Future<void> loadNotes() async {
+    List<NoteModel> savedNotes = await DatabaseHelper().getNotes();
     setState(() {
-      notes = loadedNotes;
+      notes = savedNotes;
       isLoading = false;
     });
   }
 
-  List<NoteModel> _sortNotes(String sortOption, List<NoteModel> noteList) {
-    switch (sortOption) {
-      case 'alphabetic':
-        noteList.sort((a, b) => a.noteTitle.compareTo(b.noteTitle));
-        break;
-      case 'category':
-        noteList.sort((a, b) => a.noteType.compareTo(b.noteType));
-        break;
-      default:
-        noteList.sort((a, b) => a.dateCreated.compareTo(b.dateCreated));
-    }
-    return noteList;
-  }
-
-  Future<void> addNoteToBookmarks(NoteModel note) async {
-    setState(() {
-      note.isBookmarked = true;
-    });
-    final bookmarkedNote = NoteModel(
-        noteId: note.noteId,
-        noteTitle: note.noteTitle,
-        noteType: note.noteType,
-        noteContent: note.noteContent,
-        dateCreated: note.dateCreated,
-        isBookmarked: true);
-    await _saveNoteToFile(bookmarkedNote);
-    debugPrint(bookmarkedNote.isBookmarked.toString());
-    setState(() {});
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Successfully added ${note.noteTitle} to bookmarks')));
-  }
-
-  Future<void> removeNoteFromBookmarks(NoteModel note) async {
-    setState(() {
-      note.isBookmarked = false;
-    });
-    final unBookmarkedNote = NoteModel(
-      noteId: note.noteId,
-      noteTitle: note.noteTitle,
-      noteType: note.noteType,
-      noteContent: note.noteContent,
-      dateCreated: note.dateCreated,
-    );
-    await _saveNoteToFile(unBookmarkedNote);
-    setState(() {});
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Successfully removed ${note.noteTitle} to bookmarks')));
-  }
-
-  Future<void> _saveNoteToFile(NoteModel note) async {
-    final directory = await getApplicationDocumentsDirectory();
-    final noteFile = File('${directory.path}/${note.noteTitle}.json');
-    if (await noteFile.exists()){
-      await noteFile.writeAsString(jsonEncode(note.toJson()));
-      fetchNotes();
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Note is bookmarked?: ${note.isBookmarked}')));
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('File does not exist')));
-    }
+  void showInfo(NoteModel note) {
+    showDialog(
+        context: context,
+        builder: (BuildContext context) => AlertDialog(
+              title: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.info,
+                    color: Colors.green,
+                  )
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.title),
+                      title: Text(note.noteTitle),
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.category),
+                      title: Text(note.noteType),
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.calendar_month),
+                      title: Text(note.dateCreated.toString()),
+                    ),
+                  ],
+                ),
+              ),
+            ));
   }
 
   Future<void> showOptions(NoteModel note) async {
@@ -121,7 +87,7 @@ class _NotePageState extends State<NotePage> {
                   leading: const Icon(Icons.bookmark_remove),
                   title: const Text('Remove from bookmarks'),
                   onTap: () {
-                    removeNoteFromBookmarks(note);
+                    toggleBookmark(note, false);
                     Navigator.pop(context);
                   },
                 )
@@ -129,7 +95,7 @@ class _NotePageState extends State<NotePage> {
                   leading: const Icon(Icons.bookmark_add),
                   title: const Text('Add to bookmarks'),
                   onTap: () {
-                    addNoteToBookmarks(note);
+                    toggleBookmark(note, true);
                     Navigator.pop(context);
                   },
                 ),
@@ -145,6 +111,7 @@ class _NotePageState extends State<NotePage> {
             title: const Text('Rename'),
             onTap: () {
               Navigator.pop(context);
+              renameNote(note);
             },
           ),
           ListTile(
@@ -152,6 +119,7 @@ class _NotePageState extends State<NotePage> {
             title: const Text('Info'),
             onTap: () {
               Navigator.pop(context);
+              showInfo(note);
             },
           ),
           ListTile(
@@ -159,6 +127,7 @@ class _NotePageState extends State<NotePage> {
             title: const Text('Delete Note'),
             onTap: () {
               Navigator.pop(context);
+              deleteNote(note);
             },
           ),
         ],
@@ -167,14 +136,294 @@ class _NotePageState extends State<NotePage> {
   }
 
   void openNote(NoteModel note) async {
-    Navigator.of(context).push(MaterialPageRoute(builder: (context) => NoteViewingPage(note: note)));
+    Navigator.of(context).push(
+        MaterialPageRoute(builder: (context) => NoteViewingPage(note: note)));
+  }
+
+  void deleteNote(NoteModel note) async {
+    bool confirmation = await confirmDelete(note);
+    if (confirmation) {
+      final directory = await getApplicationDocumentsDirectory();
+      final file = File('${directory.path}/${note.noteTitle}.json');
+      if (await file.exists()) {
+        await file.delete();
+        setState(() {
+          notes.remove(note);
+        });
+      }
+    } else {
+      return;
+    }
+  }
+
+  Future<bool> confirmDelete(NoteModel note) async {
+    bool isConfirmed = await showDialog(
+        context: context,
+        builder: (BuildContext context) => AlertDialog(
+                title: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [Text('Delete Note')]),
+                content: Text('Confirm deleting note ${note.noteTitle}'),
+                actions: [
+                  TextButton(
+                      onPressed: () {
+                        Navigator.pop(context, true);
+                      },
+                      child: const Text('YES',
+                          style: TextStyle(color: Colors.green))),
+                  TextButton(
+                      onPressed: () {
+                        Navigator.pop(context, false);
+                      },
+                      child: const Text('NO',
+                          style: TextStyle(color: Colors.green)))
+                ]));
+    return isConfirmed;
+  }
+
+  Future<void> toggleBookmark(NoteModel note, bool isBookmarked) async {
+    setState(() {
+      note.isBookmarked = isBookmarked;
+    });
+    await _saveNoteToFile(note);
+    note.isBookmarked
+        ? ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('${note.noteTitle} added to bookmarks')))
+        : ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('${note.noteTitle} removed from bookmarks')));
+  }
+
+  Future<void> _saveNoteToFile(NoteModel note) async {
+    final directory = await getApplicationDocumentsDirectory();
+    final noteFile = File('${directory.path}/${note.noteTitle}.json');
+    await noteFile.writeAsString(jsonEncode(note.toJson()));
+  }
+
+  void toggleNoteLock(NoteModel note) async {
+    if (note.isLocked) {
+      bool confirmation = await removeLock(note);
+      if (confirmation) {
+        setState(() {
+          note.isLocked = false;
+        });
+        final directory = await getApplicationDocumentsDirectory();
+        final file = File('${directory.path}/${note.noteTitle}.json');
+        if (await file.exists()) {
+          final updatedNoteJson = jsonEncode(note.toJson());
+          await file.writeAsString(updatedNoteJson);
+        }
+      } else {
+        return;
+      }
+    } else {
+      bool confirmation = await confirmLocking(note);
+      if (confirmation) {
+        setState(() {
+          note.isLocked = true;
+        });
+        final directory = await getApplicationDocumentsDirectory();
+        final file = File('${directory.path}/${note.noteTitle}.json');
+        if (await file.exists()) {
+          final updatedNoteJson = jsonEncode(note.toJson());
+          await file.writeAsString(updatedNoteJson);
+        }
+      } else {
+        return;
+      }
+    }
+  }
+
+  Future<bool> confirmLocking(NoteModel note) async {
+    bool confirmation = await showDialog(
+        context: context,
+        builder: (BuildContext context) => AlertDialog(
+              title: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [Text('Lock note')],
+              ),
+              content: Text('Confirm locking of ${note.noteTitle}'),
+              actions: <Widget>[
+                TextButton(
+                    onPressed: () {
+                      Navigator.pop(context, true);
+                    },
+                    child: const Text('YES',
+                        style: TextStyle(color: Colors.green))),
+                TextButton(
+                    onPressed: () {
+                      Navigator.pop(context, false);
+                    },
+                    child:
+                        const Text('NO', style: TextStyle(color: Colors.green)))
+              ],
+            ));
+    return confirmation;
+  }
+
+  Future<bool> removeLock(NoteModel note) async {
+    String message = '';
+    TextEditingController controller = TextEditingController();
+    bool confirmation = await showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return StatefulBuilder(
+            builder: (BuildContext context, StateSetter setDialogState) {
+              var height = MediaQuery.of(context).size.height;
+              return AlertDialog(
+                title: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [Text('Remove Lock')]),
+                content: SingleChildScrollView(
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    Container(
+                      decoration:
+                          BoxDecoration(color: Colors.green.withOpacity(0.1)),
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Text(
+                            style: const TextStyle(color: Colors.green),
+                            'Insert unlock PIN to confirming removing lock from ${note.noteTitle}'),
+                      ),
+                    ),
+                    SizedBox(height: height * 0.01),
+                    TextField(
+                      controller: controller,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        label: const Icon(Icons.pin),
+                        enabledBorder: OutlineInputBorder(
+                            borderSide: const BorderSide(color: Colors.green),
+                            borderRadius: BorderRadius.circular(12)),
+                        focusedBorder: OutlineInputBorder(
+                            borderSide: const BorderSide(color: Colors.green),
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                    SizedBox(height: height * 0.01),
+                    Text(message)
+                  ]),
+                ),
+                actions: [
+                  TextButton(
+                      onPressed: () async {
+                        String insertedPIN = controller.text.trim();
+                        FlutterSecureStorage storage =
+                            const FlutterSecureStorage();
+                        String? savedPIN = await storage.read(key: 'pin');
+                        if (savedPIN != null) {
+                          if (insertedPIN == savedPIN) {
+                            Navigator.pop(context, true);
+                          } else {
+                            setDialogState(() {
+                              message = 'Wrong PIN, please try again';
+                            });
+                          }
+                        } else {
+                          return;
+                        }
+                      },
+                      child: const Text('YES',
+                          style: TextStyle(color: Colors.green))),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context, false);
+                    },
+                    child:
+                        const Text('NO', style: TextStyle(color: Colors.green)),
+                  ),
+                ],
+              );
+            },
+          );
+        });
+    return confirmation;
+  }
+
+  void renameNote(NoteModel note) {
+    TextEditingController controller = TextEditingController();
+    showDialog(
+        context: context,
+        builder: (BuildContext context) => StatefulBuilder(
+            builder: (BuildContext context, StateSetter setDialogState) =>
+                AlertDialog(
+                  title: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text('Rename Note'),
+                    ],
+                  ),
+                  content: TextField(
+                    controller: controller,
+                    decoration: InputDecoration(
+                        labelText: 'New name',
+                        focusedBorder: OutlineInputBorder(
+                            borderSide: const BorderSide(color: Colors.green),
+                            borderRadius: BorderRadius.circular(12)),
+                        enabledBorder: OutlineInputBorder(
+                            borderSide: const BorderSide(color: Colors.green),
+                            borderRadius: BorderRadius.circular(12))),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () async {
+                        final newTitle = controller.text.trim();
+                        if (newTitle.isNotEmpty && newTitle != note.noteTitle) {
+                          final oldTitle = note.noteTitle;
+                          note.noteTitle = newTitle;
+
+                          final directory =
+                              await getApplicationDocumentsDirectory();
+                          final oldFile =
+                              File('${directory.path}/$oldTitle.json');
+                          final newFile =
+                              File('${directory.path}/$newTitle.json');
+
+                          try {
+                            if (await oldFile.exists()) {
+                              await oldFile.rename(newFile.path);
+                            } else {
+                              await newFile
+                                  .writeAsString(jsonEncode(note.toJson()));
+                            }
+                            loadNotes();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text(
+                                        'Note has been renamed, refreshing list')));
+                          } catch (error) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text("Error renaming note"),
+                              ),
+                            );
+                          } finally {
+                            Navigator.of(context).pop();
+                          }
+                        } else {
+                          Navigator.pop(context);
+                        }
+                      },
+                      child: const Text('Rename',
+                          style: TextStyle(color: Colors.green)),
+                    ),
+                    TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                        child: const Text(
+                          'Cancel',
+                          style: TextStyle(color: Colors.green),
+                        )),
+                  ],
+                )));
   }
 
   @override
   void initState() {
-    fetchNotes();
+    loadNotes();
     super.initState();
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -183,40 +432,34 @@ class _NotePageState extends State<NotePage> {
             child: CircularProgressIndicator(
             color: Colors.green,
           ))
-        : StreamBuilder<String>(
-            stream: widget.sortingStream,
-            builder: (context, snapshot) {
-              final sortOption = snapshot.data ?? 'dateCreated';
-              final sortedNotes = _sortNotes(sortOption, notes);
-
-              if (sortedNotes.isEmpty) {
-                return const Center(
-                  child: Text('No notes available'),
-                );
-              }
-
-              return ListView.builder(
-                itemCount: sortedNotes.length,
+        : notes.isNotEmpty
+            ? ListView.builder(
+                itemCount: notes.length,
                 itemBuilder: (context, index) {
-                  NoteModel note = sortedNotes[index];
+                  NoteModel note = notes[index];
                   return ListTile(
                     leading: const Icon(Icons.note),
                     title: Text(note.noteTitle),
                     subtitle: Text(note.noteType),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.more_vert),
-                      onPressed: () {
-                        showOptions(note);
-                      },
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (note.isBookmarked) const Icon(Icons.bookmark),
+                        if (note.isLocked) const Icon(Icons.lock),
+                        IconButton(
+                          icon: const Icon(Icons.more_vert),
+                          onPressed: () {
+                            showOptions(note);
+                          },
+                        ),
+                      ],
                     ),
                     onTap: () {
                       openNote(note);
                     },
-                    onLongPress: () {},
                   );
                 },
-              );
-            },
-          );
+              )
+            : const Center(child: Text('No notes available'));
   }
 }

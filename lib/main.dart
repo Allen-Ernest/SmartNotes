@@ -25,17 +25,12 @@ class MyNoteBook extends StatelessWidget {
   }
 }
 
-//TODO: Highlighting on longPress - Next
 //TODO: Alarms - Tomorrow
-//TODO: Push changes to github
 //TODO: Logo
-//TODO: Open Note
+//TODO: Format dates
 //TODO: App rating
 //TODO: When note locking gets disabled, all notes that were locked should be unlocked - Today
 //TODO: Style the app to have a beautifully UI
-//TODO: Add PIN recovery logic
-//TODO: Implement fetchNotes methods in note page and note locking page, then implement category colors and icons for fetched notes - Today
-//TODO: Search notes
-//TODO: Integrate note sorting with sharedPreferences
-//TODO: Search PDFs & bookmarks - Next
-//TODO: Fix saving changes error
+//TODO: Note locking
+//TODO: Implement fetchNotes note locking page, then implement category colors and icons for fetched notes - Today
+//TODO: Search and open bookmarks - Next

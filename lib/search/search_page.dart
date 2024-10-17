@@ -45,7 +45,7 @@ class _SearchPageState extends State<SearchPage> {
     }
     setState(() {
       notes = loadedNotes;
-      isLoading = false; // Make sure to stop loading after fetching notes
+      isLoading = false;
     });
   }
 
@@ -65,8 +65,7 @@ class _SearchPageState extends State<SearchPage> {
         TextField(
           controller: _controller,
           decoration: InputDecoration(
-            labelText: 'Search term',
-            icon: const Icon(Icons.search),
+            label: const Icon(Icons.search, color: Colors.green),
             enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: const BorderSide(color: Colors.green)),
@@ -75,7 +74,9 @@ class _SearchPageState extends State<SearchPage> {
                 borderSide: const BorderSide(color: Colors.green)),
           ),
         ),
-        Expanded(child: SearchResults(resultsList: notes))
+        isLoading
+            ? const Center(child: CircularProgressIndicator(color: Colors.green))
+            : Expanded(child: SearchResults(resultsList: results))
       ],
     );
   }

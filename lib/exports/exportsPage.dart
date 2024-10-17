@@ -5,6 +5,7 @@ import 'package:smart_notes/exports/export_model.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:smart_notes/exports/search_for_exports.dart';
 
 class ExportsPage extends StatefulWidget {
   const ExportsPage({super.key});
@@ -173,12 +174,16 @@ class _ExportsPageState extends State<ExportsPage> {
         actions: <Widget>[
           IconButton(
             onPressed: () {
-              Navigator.pushNamed(context, '/search_exports');
+              Navigator.of(context).push((MaterialPageRoute(
+                  builder: (BuildContext context) =>
+                      SearchForExports(exports: pdfExports))));
             },
             icon: const Icon(Icons.search, color: Colors.green),
           ),
           IconButton(
-            onPressed: () {deleteAllExports();},
+            onPressed: () {
+              deleteAllExports();
+            },
             icon: const Icon(Icons.delete_forever, color: Colors.green),
           )
         ],
@@ -217,7 +222,7 @@ class _ExportsPageState extends State<ExportsPage> {
                                 },
                                 icon: const Icon(Icons.delete_forever))
                           ]),
-                      onTap: (){
+                      onTap: () {
                         openPDF(exportModel.exportPath);
                       },
                     );

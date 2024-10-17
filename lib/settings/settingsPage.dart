@@ -35,6 +35,7 @@ class _SettingsPageState extends State<SettingsPage> {
               leading: const Icon(Icons.dark_mode),
               title: const Text('Dark Theme'),
               trailing: Switch(
+                activeColor: Colors.green,
                   value: themeProvider.isDarkTheme,
                   onChanged: (bool value) {
                     setState(() {

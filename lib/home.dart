@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:smart_notes/notes/note_page.dart';
 import 'package:smart_notes/search/search_page.dart';
@@ -8,8 +6,8 @@ import 'package:getwidget/getwidget.dart';
 import 'package:smart_notes/database/database_helper.dart';
 import 'package:smart_notes/settings/category_model.dart';
 import 'package:uuid/uuid.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:animations/animations.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -21,9 +19,6 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int currentIndex = 0;
   String groupValue = 'dateCreated';
-
-  final StreamController<String> _sortingStreamController =
-      StreamController<String>.broadcast();
 
   void onItemTapped(index) {
     setState(() {
@@ -59,56 +54,15 @@ class _HomePageState extends State<HomePage> {
         });
   }
 
-  void sortNotes() async {
-    SharedPreferences preferences = await SharedPreferences.getInstance();
-    showModalBottomSheet(
-        showDragHandle: true,
-        context: context,
-        builder: (BuildContext context) {
-          return ListView(children: <Widget>[
-            const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [Text('Sort Notes')]),
-            RadioListTile(
-                title: const Text('Date Created'),
-                groupValue: groupValue,
-                value: 'dateCreated',
-                onChanged: (value) {
-                  setState(() {
-                    groupValue = value!;
-                  });
-                  preferences.setString('sortingOption', value!);
-                  _sortingStreamController.add(groupValue);
-                  Navigator.of(context).pop();
-                }),
-            RadioListTile(
-              title: const Text('Alphabetic'),
-              groupValue: groupValue,
-              value: 'alphabetic',
-              onChanged: (value) {
-                setState(() {
-                  groupValue = value!;
-                });
-                preferences.setString('sortingOption', value!);
-                _sortingStreamController.add(groupValue);
-                Navigator.of(context).pop();
-              },
-            ),
-            RadioListTile(
-              title: const Text('Category'),
-              groupValue: groupValue,
-              value: 'category',
-              onChanged: (value) {
-                setState(() {
-                  groupValue = value!;
-                });
-                preferences.setString('sortingOption', value!);
-                _sortingStreamController.add(groupValue);
-                Navigator.of(context).pop();
-              },
-            ),
-          ]);
-        });
+  Future<void> _launchPlayStore() async {
+    final Uri playStoreUrl = Uri.parse(
+        'https://play.google.com/store/apps/details?id=com.bytecode.smart_notes.smart_notes'); // Replace with your app's package ID
+
+    if (await canLaunchUrl(playStoreUrl)) {
+      await launchUrl(playStoreUrl, mode: LaunchMode.externalApplication);
+    } else {
+      throw 'Could not launch $playStoreUrl';
+    }
   }
 
   void _loadCategories() async {
@@ -127,25 +81,8 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void _loadSortingOption() async {
-    SharedPreferences preferences = await SharedPreferences.getInstance();
-    String? sortingOption = preferences.getString('sortingOption');
-    if (sortingOption != null) {
-      setState(() {
-        groupValue = sortingOption;
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _sortingStreamController.close();
-    super.dispose();
-  }
-
   @override
   void initState() {
-    _loadSortingOption();
     _loadCategories();
     super.initState();
   }
@@ -153,23 +90,13 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     List<Widget> pages = [
-      NotePage(sortingStream: _sortingStreamController.stream),
+      const NotePage(),
       const SearchPage(),
       const MenuPage()
     ];
     List appBars = [
       AppBar(
         title: const Text('My Notes'),
-        actions: <Widget>[
-          IconButton(
-              onPressed: () {
-                sortNotes();
-              },
-              icon: const Icon(
-                Icons.sort,
-                color: Colors.green,
-              ))
-        ],
       ),
       AppBar(title: const Text('Search')),
       AppBar(title: const Text('Menu')),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:smart_notes/database/database_helper.dart';
 import 'package:smart_notes/notes/note_model.dart';
 import 'package:open_file/open_file.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -29,8 +30,8 @@ class _NoteViewingPageState extends State<NoteViewingPage> {
     String noteId = widget.note.noteId;
     String noteTitle = widget.note.noteTitle;
     String noteCategory = widget.note.noteType;
-    final noteContent = jsonEncode(_quillController.document.toDelta().toJson);
-    final directory = await getApplicationDocumentsDirectory();
+    final noteContent = jsonEncode(_quillController.document.toDelta().toJson());
+
     final note = NoteModel(
       noteId: noteId,
       noteTitle: noteTitle,
@@ -38,8 +39,8 @@ class _NoteViewingPageState extends State<NoteViewingPage> {
       noteContent: noteContent,
       dateCreated: DateTime.now()
     );
-    final file = File('${directory.path}/$noteTitle.json');
-    await file.writeAsString(jsonEncode(note.toJson()));
+
+    await DatabaseHelper().updateNote(note);
     ScaffoldMessenger.of(context)
         .showSnackBar(const SnackBar(content: Text('Changes Saved Successfully')));
     Navigator.pushNamedAndRemoveUntil(

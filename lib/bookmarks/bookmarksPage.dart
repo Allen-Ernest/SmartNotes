@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:smart_notes/notes/note_model.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:smart_notes/bookmarks/search_for_bookmarks.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -47,7 +48,12 @@ class _BookmarksPageState extends State<BookmarksPage> {
     return Scaffold(
         appBar: AppBar(title: const Text('Bookmarks'), actions: <Widget>[
           IconButton(
-              onPressed: () {Navigator.pushNamed(context, '/search_bookmarks');},
+              onPressed: () {
+                Navigator.of(context).push(MaterialPageRoute(
+                    builder: (BuildContext context) => SearchForBookmarks(
+                          bookmarks: bookmarkedNotes,
+                        )));
+              },
               icon: const Icon(Icons.search, color: Colors.green)),
           IconButton(
               onPressed: () {},

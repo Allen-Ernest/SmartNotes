@@ -1,41 +1,28 @@
-import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_iconpicker_plus/flutter_iconpicker.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:smart_notes/notes/note_model.dart';
-import 'package:smart_notes/settings/category_model.dart';
-import 'package:uuid/uuid.dart';
 import 'package:smart_notes/database/database_helper.dart';
-import 'package:smart_notes/settings/edit_category.dart';
+import 'package:smart_notes/settings/category_model.dart';
 
-class NoteCategorizationPage extends StatefulWidget {
-  const NoteCategorizationPage({super.key});
+class EditCategoryPage extends StatefulWidget {
+  const EditCategoryPage({super.key, required this.categoryModel});
+
+  final CategoryModel categoryModel;
 
   @override
-  State<NoteCategorizationPage> createState() => _NoteCategorizationPageState();
+  State<EditCategoryPage> createState() => _EditCategoryPageState();
 }
 
-class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
-  TextEditingController controller = TextEditingController();
-  IconData? iconData;
+class _EditCategoryPageState extends State<EditCategoryPage> {
+  List<CategoryModel> categories = [];
+  IconData? newIconData;
   Color? themeColor;
   String? fontFamily;
-  List<CategoryModel> categories = [];
-  List<NoteModel> notes = [];
 
-  Future<void> fetchNotes() async {
-    final directory = await getApplicationDocumentsDirectory();
-    final noteFiles =
-        directory.listSync().where((file) => file.path.endsWith('.json'));
-    List<NoteModel> loadedNotes = [];
-    for (var file in noteFiles) {
-      final noteContent = await File(file.path).readAsString();
-      final noteJson = jsonDecode(noteContent);
-      loadedNotes.add(NoteModel.fromJson(noteJson));
-    }
+  void _loadCategories() async {
+    List<CategoryModel> savedCategories =
+        await DatabaseHelper().getCategories();
     setState(() {
-      notes = loadedNotes;
+      categories = savedCategories;
     });
   }
 
@@ -46,7 +33,7 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
     ]);
     if (icon != null) {
       setState(() {
-        iconData = icon;
+        newIconData = icon;
         fontFamily = 'MaterialIcons';
       });
     }
@@ -59,10 +46,10 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
               title: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[Text('Pick Category Theme')]),
-              content:
-                  SingleChildScrollView(
-                    child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                                    ListTile(
+              content: SingleChildScrollView(
+                child:
+                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+                  ListTile(
                       leading: const Icon(Icons.category, color: Colors.blue),
                       title: const Text('Blue'),
                       tileColor: Colors.blue.withOpacity(0.1),
@@ -72,7 +59,7 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
                         });
                         Navigator.of(context).pop();
                       }),
-                                    ListTile(
+                  ListTile(
                       leading:
                           const Icon(Icons.category, color: Colors.blueAccent),
                       title: const Text('Blue Accent'),
@@ -83,7 +70,7 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
                         });
                         Navigator.of(context).pop();
                       }),
-                                    ListTile(
+                  ListTile(
                       leading:
                           const Icon(Icons.category, color: Colors.lightBlue),
                       title: const Text('Light Blue'),
@@ -94,7 +81,7 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
                         });
                         Navigator.of(context).pop();
                       }),
-                                    ListTile(
+                  ListTile(
                       leading: const Icon(Icons.category,
                           color: Colors.lightBlueAccent),
                       title: const Text('Light Blue Accent'),
@@ -105,7 +92,7 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
                         });
                         Navigator.of(context).pop();
                       }),
-                                    ListTile(
+                  ListTile(
                       leading: const Icon(Icons.category, color: Colors.green),
                       title: const Text('Green'),
                       tileColor: Colors.green.withOpacity(0.1),
@@ -115,7 +102,7 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
                         });
                         Navigator.of(context).pop();
                       }),
-                                    ListTile(
+                  ListTile(
                       leading:
                           const Icon(Icons.category, color: Colors.greenAccent),
                       title: const Text('Green Accent'),
@@ -126,7 +113,7 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
                         });
                         Navigator.of(context).pop();
                       }),
-                                    ListTile(
+                  ListTile(
                       leading: const Icon(Icons.category, color: Colors.red),
                       title: const Text('Red'),
                       tileColor: Colors.red.withOpacity(0.1),
@@ -136,7 +123,7 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
                         });
                         Navigator.of(context).pop();
                       }),
-                                    ListTile(
+                  ListTile(
                       leading:
                           const Icon(Icons.category, color: Colors.redAccent),
                       title: const Text('Red Accent'),
@@ -147,7 +134,7 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
                         });
                         Navigator.of(context).pop();
                       }),
-                                    ListTile(
+                  ListTile(
                       leading: const Icon(Icons.category, color: Colors.amber),
                       title: const Text('Amber'),
                       tileColor: Colors.amber.withOpacity(0.1),
@@ -157,7 +144,7 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
                         });
                         Navigator.of(context).pop();
                       }),
-                                    ListTile(
+                  ListTile(
                       leading:
                           const Icon(Icons.category, color: Colors.amberAccent),
                       title: const Text('Amber Accent'),
@@ -168,7 +155,7 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
                         });
                         Navigator.of(context).pop();
                       }),
-                                    ListTile(
+                  ListTile(
                       leading: const Icon(Icons.category, color: Colors.yellow),
                       title: const Text('Yellow'),
                       tileColor: Colors.yellow.withOpacity(0.1),
@@ -178,16 +165,16 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
                         });
                         Navigator.of(context).pop();
                       }),
-                                    ListTile(
-                      leading:
-                          const Icon(Icons.category, color: Colors.yellowAccent),
+                  ListTile(
+                      leading: const Icon(Icons.category,
+                          color: Colors.yellowAccent),
                       title: const Text('Yellow Accent'),
                       tileColor: Colors.yellowAccent.withOpacity(0.1),
                       onTap: () {
                         themeColor = Colors.yellowAccent;
                         Navigator.of(context).pop();
                       }),
-                                    ListTile(
+                  ListTile(
                       leading: const Icon(Icons.category, color: Colors.pink),
                       title: const Text('Pink'),
                       tileColor: Colors.pink.withOpacity(0.1),
@@ -197,7 +184,7 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
                         });
                         Navigator.of(context).pop();
                       }),
-                                    ListTile(
+                  ListTile(
                       leading:
                           const Icon(Icons.category, color: Colors.pinkAccent),
                       title: const Text('PinkAccent'),
@@ -208,7 +195,7 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
                         });
                         Navigator.of(context).pop();
                       }),
-                                    ListTile(
+                  ListTile(
                       leading: const Icon(Icons.category, color: Colors.purple),
                       title: const Text('Purple'),
                       tileColor: Colors.purple.withOpacity(0.1),
@@ -218,9 +205,9 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
                         });
                         Navigator.of(context).pop();
                       }),
-                                    ListTile(
-                      leading:
-                          const Icon(Icons.category, color: Colors.purpleAccent),
+                  ListTile(
+                      leading: const Icon(Icons.category,
+                          color: Colors.purpleAccent),
                       title: const Text('Purple Accent'),
                       tileColor: Colors.purpleAccent.withOpacity(0.1),
                       onTap: () {
@@ -229,7 +216,7 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
                         });
                         Navigator.of(context).pop();
                       }),
-                                    ListTile(
+                  ListTile(
                       leading:
                           const Icon(Icons.category, color: Colors.deepPurple),
                       title: const Text('Deep purple'),
@@ -238,7 +225,7 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
                         themeColor = Colors.deepPurple;
                         Navigator.of(context).pop();
                       }),
-                                    ListTile(
+                  ListTile(
                       leading: const Icon(Icons.category,
                           color: Colors.deepPurpleAccent),
                       title: const Text('Deep purple Accent'),
@@ -249,8 +236,9 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
                         });
                         Navigator.of(context).pop();
                       }),
-                                    ListTile(
-                      leading: const Icon(Icons.category, color: Colors.blueGrey),
+                  ListTile(
+                      leading:
+                          const Icon(Icons.category, color: Colors.blueGrey),
                       title: const Text('Blue Grey'),
                       tileColor: Colors.blueGrey.withOpacity(0.1),
                       onTap: () {
@@ -259,7 +247,7 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
                         });
                         Navigator.of(context).pop();
                       }),
-                                    ListTile(
+                  ListTile(
                       leading: const Icon(Icons.category, color: Colors.grey),
                       title: const Text('Grey'),
                       tileColor: Colors.grey.withOpacity(0.1),
@@ -269,7 +257,7 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
                         });
                         Navigator.of(context).pop();
                       }),
-                                    ListTile(
+                  ListTile(
                       leading: const Icon(Icons.category, color: Colors.brown),
                       title: const Text('Brown'),
                       tileColor: Colors.brown.withOpacity(0.1),
@@ -279,7 +267,7 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
                         });
                         Navigator.of(context).pop();
                       }),
-                                    ListTile(
+                  ListTile(
                       leading: const Icon(Icons.category, color: Colors.orange),
                       title: const Text('Orange'),
                       tileColor: Colors.orange.withOpacity(0.1),
@@ -289,9 +277,9 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
                         });
                         Navigator.of(context).pop();
                       }),
-                                    ListTile(
-                      leading:
-                          const Icon(Icons.category, color: Colors.orangeAccent),
+                  ListTile(
+                      leading: const Icon(Icons.category,
+                          color: Colors.orangeAccent),
                       title: const Text('Orange Accent'),
                       tileColor: Colors.orangeAccent.withOpacity(0.1),
                       onTap: () {
@@ -300,7 +288,7 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
                         });
                         Navigator.of(context).pop();
                       }),
-                                    ListTile(
+                  ListTile(
                       leading:
                           const Icon(Icons.category, color: Colors.deepOrange),
                       title: const Text('Deep Orange'),
@@ -311,7 +299,7 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
                         });
                         Navigator.of(context).pop();
                       }),
-                                    ListTile(
+                  ListTile(
                       leading: const Icon(Icons.category,
                           color: Colors.deepOrangeAccent),
                       title: const Text('Deep Orange Accent'),
@@ -322,7 +310,7 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
                         });
                         Navigator.of(context).pop();
                       }),
-                                    ListTile(
+                  ListTile(
                       leading: const Icon(Icons.category, color: Colors.cyan),
                       title: const Text('Cyan'),
                       tileColor: Colors.cyan.withOpacity(0.1),
@@ -332,7 +320,7 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
                         });
                         Navigator.of(context).pop();
                       }),
-                                    ListTile(
+                  ListTile(
                       leading:
                           const Icon(Icons.category, color: Colors.cyanAccent),
                       title: const Text('Cyan Accent'),
@@ -343,7 +331,7 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
                         });
                         Navigator.of(context).pop();
                       }),
-                                    ListTile(
+                  ListTile(
                       leading:
                           const Icon(Icons.category, color: Colors.lightGreen),
                       title: const Text('Light Green'),
@@ -354,7 +342,7 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
                         });
                         Navigator.of(context).pop();
                       }),
-                                    ListTile(
+                  ListTile(
                       leading: const Icon(Icons.category,
                           color: Colors.lightGreenAccent),
                       title: const Text('Light Green Accent'),
@@ -365,7 +353,7 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
                         });
                         Navigator.of(context).pop();
                       }),
-                                    ListTile(
+                  ListTile(
                       leading: const Icon(Icons.category, color: Colors.lime),
                       title: const Text('Lime'),
                       tileColor: Colors.lime.withOpacity(0.1),
@@ -375,7 +363,7 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
                         });
                         Navigator.of(context).pop();
                       }),
-                                    ListTile(
+                  ListTile(
                       leading:
                           const Icon(Icons.category, color: Colors.limeAccent),
                       title: const Text('Lime Accent'),
@@ -386,7 +374,7 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
                         });
                         Navigator.of(context).pop();
                       }),
-                                    ListTile(
+                  ListTile(
                       leading: const Icon(Icons.category, color: Colors.indigo),
                       title: const Text('Indigo'),
                       tileColor: Colors.indigo.withOpacity(0.1),
@@ -396,9 +384,9 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
                         });
                         Navigator.of(context).pop();
                       }),
-                                    ListTile(
-                      leading:
-                          const Icon(Icons.category, color: Colors.indigoAccent),
+                  ListTile(
+                      leading: const Icon(Icons.category,
+                          color: Colors.indigoAccent),
                       title: const Text('Indigo Accent'),
                       tileColor: Colors.indigoAccent.withOpacity(0.1),
                       onTap: () {
@@ -407,7 +395,7 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
                         });
                         Navigator.of(context).pop();
                       }),
-                                    ListTile(
+                  ListTile(
                       leading: const Icon(Icons.category, color: Colors.teal),
                       title: const Text('Teal'),
                       tileColor: Colors.teal.withOpacity(0.1),
@@ -417,7 +405,7 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
                         });
                         Navigator.of(context).pop();
                       }),
-                                    ListTile(
+                  ListTile(
                       leading:
                           const Icon(Icons.category, color: Colors.tealAccent),
                       title: const Text('Teal Accent'),
@@ -428,36 +416,9 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
                         });
                         Navigator.of(context).pop();
                       }),
-                                  ]),
-                  ),
+                ]),
+              ),
             ));
-  }
-
-  Future<bool> _checkIfCategoryAlreadyExists(CategoryModel category) async {
-    for (var existingCategory in categories) {
-      if (existingCategory.categoryTitle.trim().toLowerCase() ==
-          category.categoryTitle.trim().toLowerCase()) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  void _loadCategories() async {
-    List<CategoryModel> savedCategories =
-        await DatabaseHelper().getCategories();
-    setState(() {
-      categories = savedCategories;
-    });
-  }
-
-  void _deleteCategory(CategoryModel category) async {
-    await DatabaseHelper().deleteCategory(category.categoryId);
-    setState(() {
-      categories.remove(category);
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Removed category ${category.categoryTitle}')));
   }
 
   String _capitalizeFirstLetter(String input) {
@@ -465,158 +426,82 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
     return input[0].toUpperCase() + input.substring(1);
   }
 
-  void _addCategory() async {
-    if (controller.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please add a category name')));
-      return;
-    }
-    if (iconData == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please add a category icon')));
-      return;
-    }
-    if (themeColor == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please add a category theme')));
-      return;
-    }
-    String categoryTitle = _capitalizeFirstLetter(controller.text.trim());
-    String categoryId = const Uuid().v4();
-    String colorHex = themeColor!.value.toRadixString(16);
-    int iconCodePoint = iconData!.codePoint;
-    final CategoryModel newCategory = CategoryModel(
-        categoryId: categoryId,
-        categoryTitle: categoryTitle,
-        categoryColor: colorHex,
-        categoryIcon: iconCodePoint,
-        fontFamily: 'MaterialIcons');
-
-    bool doesCategoryExist = await _checkIfCategoryAlreadyExists(newCategory);
-    if (doesCategoryExist) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content:
-              Text('Category "${newCategory.categoryTitle}" already exists')));
-      return;
-    }
-
-    await DatabaseHelper().insertCategory(newCategory);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('New category added ${controller.text.trim()}')));
-    _loadCategories();
-    setState(() {
-      controller.clear();
-      themeColor = null;
-      iconData = null;
-    });
-  }
-
   @override
-  initState() {
+  void initState() {
     _loadCategories();
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
-    var height = MediaQuery.of(context).size.height;
+    TextEditingController controller =
+        TextEditingController(text: widget.categoryModel.categoryTitle);
+    CategoryModel category = widget.categoryModel;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Categorize Your Notes'),
+        title: Text('Edit category ${category.categoryTitle}'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(8.0),
-        child: Column(
+        child: SingleChildScrollView(
+            child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Container(
-              decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12)),
-              child: const Padding(
-                padding: EdgeInsets.all(8.0),
-                child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: <Widget>[
-                      Icon(Icons.help, color: Colors.green),
-                      Expanded(
-                          child: Text(
-                        'Specify category name, icon and theme then press the add category button to add a new category',
-                        style: TextStyle(color: Colors.green),
-                        textAlign: TextAlign.justify,
-                      ))
-                    ]),
-              ),
-            ),
-            SizedBox(height: height * 0.02),
             TextField(
               controller: controller,
               decoration: InputDecoration(
-                  labelText: 'Category Name',
-                  enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.green)),
-                  focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.green))),
+                labelText: 'Title',
+                focusedBorder: OutlineInputBorder(
+                    borderSide: const BorderSide(color: Colors.green),
+                    borderRadius: BorderRadius.circular(12)),
+                enabledBorder: OutlineInputBorder(
+                    borderSide: const BorderSide(color: Colors.green),
+                    borderRadius: BorderRadius.circular(12)),
+              ),
             ),
-            Row(mainAxisAlignment: MainAxisAlignment.center, children: <Widget>[
-              ElevatedButton(
-                  onPressed: _pickIcon,
-                  child: Icon(iconData ?? Icons.category, color: Colors.green)),
-              ElevatedButton(
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                IconButton(
+                    onPressed: _pickIcon,
+                    icon: Icon(newIconData ??
+                        IconData(category.categoryIcon,
+                            fontFamily: 'MaterialIcons'))),
+                IconButton(
                   onPressed: _pickTheme,
-                  child: Icon(
-                    Icons.palette,
-                    color: themeColor ?? Colors.green,
-                  )),
-            ]),
+                  icon: Icon(Icons.palette, color: themeColor),
+                )
+              ],
+            ),
             ElevatedButton(
-                onPressed: () {
-                  _addCategory();
+                onPressed: () async {
+                  try {
+                    String colorHex = themeColor!.value.toRadixString(16);
+                    int iconCodePoint = newIconData!.codePoint;
+                    CategoryModel updatedCategory = CategoryModel(
+                        categoryId: category.categoryId,
+                        categoryTitle: _capitalizeFirstLetter(controller.text.trim()),
+                        categoryColor: colorHex,
+                        categoryIcon: iconCodePoint,
+                        fontFamily: 'MaterialIcons');
+                    await DatabaseHelper().updateCategory(updatedCategory);
+                  } catch (error) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('An error occurred')));
+                  } finally {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                        content: Text('Successfully updated category')));
+                    Navigator.pushReplacementNamed(context, '/category');
+                  }
                 },
                 child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text("Add category",
-                        style: TextStyle(color: Colors.green)),
-                  ],
-                )),
-            Expanded(
-              child: ListView.builder(
-                  itemCount: categories.length,
-                  itemBuilder: (context, index) {
-                    if (categories.isNotEmpty) {
-                      CategoryModel category = categories[index];
-                      IconData iconData = IconData(category.categoryIcon,
-                          fontFamily: category.fontFamily);
-                      Color color =
-                          Color(int.parse(category.categoryColor, radix: 16));
-                      return ListTile(
-                          leading: Icon(iconData, color: color),
-                          title: Text(category.categoryTitle),
-                          subtitle: Text('${category.categoryTitle} note'),
-                          tileColor: color.withOpacity(0.1),
-                          trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: <Widget>[
-                                IconButton(
-                                    onPressed: () {
-                                      _deleteCategory(category);
-                                    },
-                                    icon: const Icon(Icons.delete)),
-                                IconButton(
-                                    onPressed: () {
-                                      Navigator.of(context).push(MaterialPageRoute(builder: (BuildContext context) => EditCategoryPage(categoryModel: category)));
-                                    },
-                                    icon: const Icon(Icons.edit))
-                              ]));
-                    } else {
-                      return const Text('You have no note categories created');
-                    }
-                  }),
-            )
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text('Update Category',
+                          style: TextStyle(color: Colors.green))
+                    ]))
           ],
-        ),
+        )),
       ),
     );
   }
