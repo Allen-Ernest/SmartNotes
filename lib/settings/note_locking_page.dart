@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:smart_notes/notes/note_model.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:smart_notes/database/database_helper.dart';
 
 class NoteLockingPage extends StatefulWidget {
   const NoteLockingPage({super.key});
@@ -18,24 +19,139 @@ class _NoteLockingPageState extends State<NoteLockingPage> {
   List<NoteModel> lockedNotes = [];
   bool isNoteLockingConfigured = false;
 
-  Future<void> fetchNotes() async {
-    final directory = await getApplicationDocumentsDirectory();
-    final noteFiles =
-        directory.listSync().where((file) => file.path.endsWith('.json'));
-    List<NoteModel> loadedNotes = [];
-    for (var file in noteFiles) {
-      final noteContent = await File(file.path).readAsString();
-      final noteJson = jsonDecode(noteContent);
-      loadedNotes.add(NoteModel.fromJson(noteJson));
+  fetchLockedNotes() async {
+    List<NoteModel> notes = await DatabaseHelper().getNotes();
+    for (var note in notes) {
+      if (note.isLocked) {
+        notes.add(note);
+      }
+      setState(() {
+        lockedNotes = notes;
+      });
     }
   }
 
   void removeLockFromNotes() async {
     if (lockedNotes.isNotEmpty) {
       for (NoteModel note in lockedNotes) {
-        //Set isLocked property to false
+        setState(() {
+          note.isLocked = false;
+        });
+        await DatabaseHelper().updateNote(note);
+      }
+      fetchLockedNotes();
+    }
+  }
+
+  void turnOffLockOnNote(NoteModel note) async {
+    final confirmation = await confirmTurningOffLockOnNote(note);
+    if (confirmation) {
+      setState(() {
+        note.isLocked = false;
+      });
+      int isNoteUpdated = await DatabaseHelper().updateNote(note);
+      if (isNoteUpdated == 1) {
+        setState(() {
+          lockedNotes.remove(note);
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Unable to remove lock from note")));
       }
     }
+  }
+
+  Future<bool> confirmTurningOffLockOnNote(NoteModel note) async {
+    TextEditingController controller = TextEditingController();
+    bool confirmation = await showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Insert PIN to remove lock on ${note.noteTitle}'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                TextField(
+                  autofocus: true,
+                  controller: controller,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    label: const Icon(Icons.pin),
+                    enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Colors.green)),
+                    focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Colors.green)),
+                  ),
+                )
+              ],
+            ),
+            actions: <TextButton>[
+              TextButton(
+                onPressed: () {},
+                child: const Text('Confirm'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  FlutterSecureStorage storage = const FlutterSecureStorage();
+                  String? pin = await storage.read(key: 'pin');
+                  if (pin != null) {
+                    String insertedPIN = controller.text.trim();
+                    if (insertedPIN == pin) {
+                      Navigator.pop(context, true);
+                    } else {
+                      Navigator.pop(context, false);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Invalid PIN")));
+                    }
+                  } else {
+                    return;
+                  }
+                },
+                child: const Text('Confirm',
+                    style: TextStyle(color: Colors.green)),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context, false);
+                },
+                child:
+                    const Text('Cancel', style: TextStyle(color: Colors.green)),
+              )
+            ],
+          );
+        });
+    return confirmation;
+  }
+
+  Future<bool> confirmTurningOffLockOnAllNotes() async {
+    final TextEditingController controller = TextEditingController();
+    bool confirmation = await showDialog(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        title: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Text('Confirm unlocking all notes')
+          ]
+        ),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: InputDecoration(
+            label: const Icon(Icons.pin),
+            enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Colors.green)),
+            focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Colors.green)),
+          ),
+        ),
+      )
+    );
+    return confirmation;
   }
 
   void getLockingState() async {
@@ -62,7 +178,6 @@ class _NoteLockingPageState extends State<NoteLockingPage> {
                 isPINVisible = !isPINVisible;
               });
             }
-
 
             return AlertDialog(
               title: const Row(
@@ -91,8 +206,14 @@ class _NoteLockingPageState extends State<NoteLockingPage> {
                                 togglePINVisibility();
                               },
                               icon: isPINVisible
-                                  ? const Icon(Icons.visibility_off, color: Colors.green,)
-                                  : const Icon(Icons.visibility, color: Colors.green,))),
+                                  ? const Icon(
+                                      Icons.visibility_off,
+                                      color: Colors.green,
+                                    )
+                                  : const Icon(
+                                      Icons.visibility,
+                                      color: Colors.green,
+                                    ))),
                     ),
                     SizedBox(height: height * 0.03),
                     TextField(
@@ -101,7 +222,8 @@ class _NoteLockingPageState extends State<NoteLockingPage> {
                       maxLength: 4,
                       obscureText: true,
                       decoration: InputDecoration(
-                          label: const Icon(Icons.check_circle, color: Colors.green),
+                          label: const Icon(Icons.check_circle,
+                              color: Colors.green),
                           hintText: 'Verify PIN',
                           enabledBorder: OutlineInputBorder(
                               borderSide: const BorderSide(color: Colors.green),
@@ -132,7 +254,7 @@ class _NoteLockingPageState extends State<NoteLockingPage> {
                         FlutterSecureStorage storage =
                             const FlutterSecureStorage();
                         storage.write(key: 'pin', value: pin1);
-                        setState((){
+                        setState(() {
                           isNoteLockingConfigured = true;
                         });
                         Navigator.pop(context);
@@ -143,12 +265,14 @@ class _NoteLockingPageState extends State<NoteLockingPage> {
                                 'Successfully configured not locking, you can now lock your notes, use the PIN submitted to unlock locked notes')));
                       }
                     },
-                    child: const Text('Set PIN', style: TextStyle(color: Colors.green))),
+                    child: const Text('Set PIN',
+                        style: TextStyle(color: Colors.green))),
                 TextButton(
                     onPressed: () {
                       Navigator.of(context).pop();
                     },
-                    child: const Text('Cancel', style: TextStyle(color: Colors.green)))
+                    child: const Text('Cancel',
+                        style: TextStyle(color: Colors.green)))
               ],
             );
           });
@@ -167,7 +291,7 @@ class _NoteLockingPageState extends State<NoteLockingPage> {
         FlutterSecureStorage storage = const FlutterSecureStorage();
         preferences.setBool('isNoteLockingConfigured', false);
         storage.delete(key: 'pin');
-        for (var note in lockedNotes){
+        for (var note in lockedNotes) {
           setState(() {
             note.isLocked = false;
           });
@@ -188,7 +312,10 @@ class _NoteLockingPageState extends State<NoteLockingPage> {
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
-            title: const Text('Confirm Disabling note locking', textAlign: TextAlign.center,),
+            title: const Text(
+              'Confirm Disabling note locking',
+              textAlign: TextAlign.center,
+            ),
             content: TextField(
               controller: controller,
               keyboardType: TextInputType.number,
@@ -213,12 +340,14 @@ class _NoteLockingPageState extends State<NoteLockingPage> {
                       Navigator.of(context).pop(false);
                     }
                   },
-                  child: const Text('Confirm', style: TextStyle(color: Colors.green))),
+                  child: const Text('Confirm',
+                      style: TextStyle(color: Colors.green))),
               TextButton(
                   onPressed: () {
                     Navigator.of(context).pop(false);
                   },
-                  child: const Text('Cancel', style: TextStyle(color: Colors.green))),
+                  child: const Text('Cancel',
+                      style: TextStyle(color: Colors.green))),
             ],
           );
         });
@@ -234,7 +363,7 @@ class _NoteLockingPageState extends State<NoteLockingPage> {
   @override
   void initState() {
     getLockingState();
-    fetchNotes();
+    fetchLockedNotes();
     super.initState();
   }
 
@@ -261,17 +390,19 @@ class _NoteLockingPageState extends State<NoteLockingPage> {
               if (lockedNotes.isNotEmpty)
                 ListView.builder(
                   itemCount: lockedNotes.length,
-                  itemBuilder: (context, index){
+                  itemBuilder: (context, index) {
                     final lockedNote = lockedNotes[index];
                     return ListTile(
                       leading: const Icon(Icons.note),
                       title: Text(lockedNote.noteTitle),
                       subtitle: Text(lockedNote.noteType),
-                      trailing: IconButton(onPressed: (){}, icon: const Icon(Icons.lock_open)),
+                      trailing: IconButton(
+                          onPressed: () {}, icon: const Icon(Icons.lock_open)),
                     );
                   },
-                ) else
-                  const Text('No locked notes available')
+                )
+              else
+                const Text('No locked notes available')
             ],
           )),
     );

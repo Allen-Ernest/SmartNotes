@@ -24,22 +24,23 @@ class NoteModel {
         'noteId': noteId,
         'noteTitle': noteTitle,
         'noteType': noteType,
-        'content': noteContent,
+        'noteContent': noteContent,
         'dateCreated': dateCreated.toIso8601String(),
-        'hasReminder': hasReminder,
-        'isBookmarked': isBookmarked,
+        'hasReminder': hasReminder ? 1 : 0,
+        'isBookmarked': isBookmarked ? 1 : 0,
         'reminderTime': reminderTime?.toIso8601String(),
-        'isLocked': isLocked
+        'isLocked': isLocked ? 1 : 0
       };
 
   factory NoteModel.fromJson(Map<String, dynamic> json) => NoteModel(
       noteId: json['noteId'],
       noteTitle: json['noteTitle'],
       noteType: json['noteType'],
-      noteContent: json['content'],
+      noteContent: json['noteContent'],
       dateCreated: DateTime.parse(json['dateCreated']),
-      hasReminder: json['hasReminder'] ?? false,
-      isLocked: json['isLocked'] ?? false,
+      hasReminder: json['hasReminder'] == 1,
+      isBookmarked: json['isBookmarked'] == 1,
+      isLocked: json['isLocked'] == 1,
       reminderTime:
           json['reminderTime'] != null ? DateTime.parse(json['reminderTime']) : null);
 }

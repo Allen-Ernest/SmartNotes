@@ -32,5 +32,5 @@ class MyNoteBook extends StatelessWidget {
 //TODO: When note locking gets disabled, all notes that were locked should be unlocked - Today
 //TODO: Style the app to have a beautifully UI
 //TODO: Note locking
+//TODO: Modify search page
 //TODO: Implement fetchNotes note locking page, then implement category colors and icons for fetched notes - Today
-//TODO: Search and open bookmarks - Next

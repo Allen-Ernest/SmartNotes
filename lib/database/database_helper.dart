@@ -35,7 +35,7 @@ class DatabaseHelper {
     ''');
 
     await db.execute(''' 
-    noteId TEXT PRIMARY KEY,
+    CREATE TABLE notes(noteId TEXT PRIMARY KEY,
     noteTitle TEXT,
     noteType TEXT,
     noteContent TEXT,
@@ -43,7 +43,7 @@ class DatabaseHelper {
     hasReminder INTEGER,
     isBookmarked INTEGER,
     isLocked INTEGER,
-    reminderTime TEXT
+    reminderTime TEXT)
     ''');
   }
 

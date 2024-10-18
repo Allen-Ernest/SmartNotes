@@ -96,7 +96,7 @@ class _RemindersPageState extends State<RemindersPage> {
                       onPressed: _clearReminders,
                       icon: const Icon(
                         Icons.delete_forever,
-                        color: Colors.red,
+                        color: Colors.green,
                       ))
                 ],
               ),

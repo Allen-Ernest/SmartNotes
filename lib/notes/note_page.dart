@@ -7,6 +7,7 @@ import 'package:smart_notes/notes/note_model.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:smart_notes/notes/view_note.dart';
 import 'package:smart_notes/database/database_helper.dart';
+import 'package:smart_notes/settings/category_model.dart';
 
 class NotePage extends StatefulWidget {
   const NotePage({super.key});
@@ -18,7 +19,7 @@ class NotePage extends StatefulWidget {
 class _NotePageState extends State<NotePage> {
   List<NoteModel> notes = [];
   bool isLoading = true;
-
+  List<CategoryModel> categories = [];
 
   Future<void> loadNotes() async {
     List<NoteModel> savedNotes = await DatabaseHelper().getNotes();
@@ -72,7 +73,7 @@ class _NotePageState extends State<NotePage> {
           const Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              Text('Options'),
+              Text('Actions'),
             ],
           ),
           ListTile(
@@ -143,13 +144,13 @@ class _NotePageState extends State<NotePage> {
   void deleteNote(NoteModel note) async {
     bool confirmation = await confirmDelete(note);
     if (confirmation) {
-      final directory = await getApplicationDocumentsDirectory();
-      final file = File('${directory.path}/${note.noteTitle}.json');
-      if (await file.exists()) {
-        await file.delete();
+      int isNoteDeleted = await DatabaseHelper().deleteNote(note.noteId);
+      if (isNoteDeleted == 1) {
         setState(() {
           notes.remove(note);
         });
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('${note.noteTitle} Successfully deleted')));
       }
     } else {
       return;
@@ -185,18 +186,12 @@ class _NotePageState extends State<NotePage> {
     setState(() {
       note.isBookmarked = isBookmarked;
     });
-    await _saveNoteToFile(note);
+    await DatabaseHelper().updateNote(note);
     note.isBookmarked
         ? ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('${note.noteTitle} added to bookmarks')))
         : ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text('${note.noteTitle} removed from bookmarks')));
-  }
-
-  Future<void> _saveNoteToFile(NoteModel note) async {
-    final directory = await getApplicationDocumentsDirectory();
-    final noteFile = File('${directory.path}/${note.noteTitle}.json');
-    await noteFile.writeAsString(jsonEncode(note.toJson()));
   }
 
   void toggleNoteLock(NoteModel note) async {
@@ -339,91 +334,98 @@ class _NotePageState extends State<NotePage> {
     return confirmation;
   }
 
-  void renameNote(NoteModel note) {
-    TextEditingController controller = TextEditingController();
+  void renameNote(NoteModel note) async {
+    final TextEditingController controller = TextEditingController();
+    String? message;
     showDialog(
         context: context,
         builder: (BuildContext context) => StatefulBuilder(
-            builder: (BuildContext context, StateSetter setDialogState) =>
-                AlertDialog(
-                  title: const Row(
+                builder: (BuildContext context, StateSetter setDialogSate) {
+              var height = MediaQuery.of(context).size.height;
+              return AlertDialog(
+                title: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text('Rename Note'),
-                    ],
-                  ),
-                  content: TextField(
-                    controller: controller,
-                    decoration: InputDecoration(
-                        labelText: 'New name',
-                        focusedBorder: OutlineInputBorder(
-                            borderSide: const BorderSide(color: Colors.green),
-                            borderRadius: BorderRadius.circular(12)),
+                    children: [Text('Rename ${note.noteTitle}')]),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: controller,
+                      decoration: InputDecoration(
+                        hintText: 'New title',
                         enabledBorder: OutlineInputBorder(
-                            borderSide: const BorderSide(color: Colors.green),
-                            borderRadius: BorderRadius.circular(12))),
-                  ),
-                  actions: [
-                    TextButton(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: Colors.green)),
+                        focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: Colors.green)),
+                      ),
+                    ),
+                    if (message != null)
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(height: height * 0.03),
+                          Text(message!),
+                        ],
+                      )
+                  ],
+                ),
+                actions: <TextButton>[
+                  TextButton(
                       onPressed: () async {
-                        final newTitle = controller.text.trim();
-                        if (newTitle.isNotEmpty && newTitle != note.noteTitle) {
-                          final oldTitle = note.noteTitle;
+                        final String newTitle = controller.text.trim();
+                        if (newTitle.toLowerCase() ==
+                            note.noteTitle.toLowerCase()) {
+                          setDialogSate(() {
+                            message = 'Please, use a new title';
+                          });
+                          return;
+                        }
+                        setState(() {
                           note.noteTitle = newTitle;
-
-                          final directory =
-                              await getApplicationDocumentsDirectory();
-                          final oldFile =
-                              File('${directory.path}/$oldTitle.json');
-                          final newFile =
-                              File('${directory.path}/$newTitle.json');
-
-                          try {
-                            if (await oldFile.exists()) {
-                              await oldFile.rename(newFile.path);
-                            } else {
-                              await newFile
-                                  .writeAsString(jsonEncode(note.toJson()));
-                            }
-                            loadNotes();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content: Text(
-                                        'Note has been renamed, refreshing list')));
-                          } catch (error) {
-                            ScaffoldMessenger.of(context).showSnackBar(
+                        });
+                        int isNotUpdated =
+                            await DatabaseHelper().updateNote(note);
+                        if (isNotUpdated == 1) {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text("Error renaming note"),
-                              ),
-                            );
-                          } finally {
-                            Navigator.of(context).pop();
-                          }
+                                  content: Text('Successfully renamed note')));
                         } else {
                           Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text('Failed renaming note')));
                         }
                       },
                       child: const Text('Rename',
-                          style: TextStyle(color: Colors.green)),
-                    ),
-                    TextButton(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                        },
-                        child: const Text(
-                          'Cancel',
-                          style: TextStyle(color: Colors.green),
-                        )),
-                  ],
-                )));
+                          style: TextStyle(color: Colors.green))),
+                  TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      child: const Text('Cancel',
+                          style: TextStyle(color: Colors.green)))
+                ],
+              );
+            }));
+  }
+
+  void loadCategories() async {
+    List<CategoryModel> savedCategories =
+        await DatabaseHelper().getCategories();
+    setState(() {
+      categories = savedCategories;
+    });
   }
 
   @override
   void initState() {
     loadNotes();
+    loadCategories();
     super.initState();
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -437,8 +439,21 @@ class _NotePageState extends State<NotePage> {
                 itemCount: notes.length,
                 itemBuilder: (context, index) {
                   NoteModel note = notes[index];
+                  CategoryModel category = categories.firstWhere(
+                      (cat) => cat.categoryTitle == note.noteType,
+                      orElse: () => CategoryModel(
+                          categoryId: 'default',
+                          categoryTitle: 'Default',
+                          categoryColor: '0xFFFF0000',
+                          categoryIcon: Icons.note.codePoint,
+                          fontFamily: 'MaterialIcons'));
                   return ListTile(
-                    leading: const Icon(Icons.note),
+                    leading: Icon(
+                      IconData(category.categoryIcon,
+                          fontFamily: category.fontFamily),
+                      color: Color(int.parse(
+                          category.categoryColor, radix: 16)),
+                    ),
                     title: Text(note.noteTitle),
                     subtitle: Text(note.noteType),
                     trailing: Row(
@@ -457,6 +472,10 @@ class _NotePageState extends State<NotePage> {
                     onTap: () {
                       openNote(note);
                     },
+                    tileColor: Color(int.parse(
+                            category.categoryColor,
+                            radix: 16))
+                        .withOpacity(0.1),
                   );
                 },
               )

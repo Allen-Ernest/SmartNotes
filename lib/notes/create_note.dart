@@ -120,7 +120,8 @@ class _CreateNoteState extends State<CreateNote> {
         noteTitle: noteTitle,
         noteType: noteCategory,
         noteContent: noteContent,
-        dateCreated: DateTime.now());
+        dateCreated: DateTime.now(),
+    );
 
     await DatabaseHelper().insertNote(note);
     ScaffoldMessenger.of(context)
@@ -149,7 +150,11 @@ class _CreateNoteState extends State<CreateNote> {
                           controller: controller,
                           decoration: InputDecoration(
                               labelText: 'Note Title',
-                              border: OutlineInputBorder(
+                              focusedBorder: OutlineInputBorder(
+                                  borderSide: const BorderSide(color: Colors.green),
+                                  borderRadius: BorderRadius.circular(12)),
+                              enabledBorder: OutlineInputBorder(
+                                  borderSide: const BorderSide(color: Colors.green),
                                   borderRadius: BorderRadius.circular(12))),
                         ),
                         SizedBox(height: height * 0.03),
@@ -191,12 +196,12 @@ class _CreateNoteState extends State<CreateNote> {
                         onPressed: () {
                           Navigator.of(context).pop(controller.text.trim());
                         },
-                        child: const Text('Save')),
+                        child: const Text('Save', style: TextStyle(color: Colors.green))),
                     TextButton(
                         onPressed: () {
                           Navigator.of(context).pop();
                         },
-                        child: const Text('Cancel'))
+                        child: const Text('Cancel', style: TextStyle(color: Colors.green)))
                   ],
                 )));
   }
