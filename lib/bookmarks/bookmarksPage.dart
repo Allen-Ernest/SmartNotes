@@ -224,6 +224,51 @@ class _BookmarksPageState extends State<BookmarksPage> {
         });
   }
 
+  Future<bool> confirmClearingBookmarks() async {
+    bool confirmation = await showDialog(
+        context: context,
+        builder: (BuildContext context) => AlertDialog(
+              title: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [Expanded(child: Text('Clear Bookmarks'))]),
+              content: Text(
+                  'Confirm Clearing all ${bookmarkedNotes.length} notes from bookmarks'),
+              actions: <Widget>[
+                TextButton(
+                    onPressed: () {
+                      Navigator.pop(context, true);
+                    },
+                    child: const Text('Clear',
+                        style: TextStyle(color: Colors.green))),
+                TextButton(
+                    onPressed: () {
+                      Navigator.pop(context, false);
+                    },
+                    child: const Text('Cancel',
+                        style: TextStyle(color: Colors.green)))
+              ],
+            ));
+    return confirmation;
+  }
+
+  void clearBookmarks() async {
+    final bool confirmation = await confirmClearingBookmarks();
+    if (confirmation) {
+      for (var note in bookmarkedNotes) {
+        setState(() {
+          note.isBookmarked = false;
+        });
+        await DatabaseHelper().updateNote(note);
+      }
+      setState(() {
+        bookmarkedNotes.clear();
+      });
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(
+              'Cleared all ${bookmarkedNotes.length} bookmarks successfully')));
+    }
+  }
+
   @override
   void initState() {
     fetchBookmarks();
@@ -234,17 +279,22 @@ class _BookmarksPageState extends State<BookmarksPage> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(title: const Text('Bookmarks'), actions: <Widget>[
-          IconButton(
-              onPressed: () {
-                Navigator.of(context).push(MaterialPageRoute(
-                    builder: (BuildContext context) => SearchForBookmarks(
-                          bookmarks: bookmarkedNotes,
-                        )));
-              },
-              icon: const Icon(Icons.search, color: Colors.green)),
-          IconButton(
-              onPressed: () {},
-              icon: const Icon(Icons.delete_forever, color: Colors.green))
+          if (bookmarkedNotes.isNotEmpty)
+            IconButton(
+                onPressed: () {
+                  Navigator.of(context).push(MaterialPageRoute(
+                      builder: (BuildContext context) => SearchForBookmarks(
+                            bookmarks: bookmarkedNotes,
+                          )));
+                },
+                icon: const Icon(Icons.search, color: Colors.green)),
+          if (bookmarkedNotes.isNotEmpty)
+            IconButton(
+                onPressed: () {
+                  clearBookmarks();
+                },
+                icon: const Icon(Icons.bookmark_remove_outlined,
+                    color: Colors.green))
         ]),
         body: Padding(
             padding: const EdgeInsets.all(8.0),

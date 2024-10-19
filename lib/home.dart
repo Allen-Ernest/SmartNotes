@@ -120,6 +120,8 @@ class _HomePageState extends State<HomePage> {
             child: pages[currentIndex]),
       ),
       floatingActionButton: FloatingActionButton(
+        tooltip: 'Create new note',
+          backgroundColor: Colors.green,
           onPressed: () {
             Navigator.pushNamed(context, '/create_note');
           },

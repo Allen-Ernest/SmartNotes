@@ -295,7 +295,7 @@ class _NoteLockingPageState extends State<NoteLockingPage> {
           setState(() {
             note.isLocked = false;
           });
-          await _saveNoteToFile(note);
+          await DatabaseHelper().updateNote(note);
         }
         setState(() {
           isNoteLockingConfigured = false;
@@ -354,12 +354,6 @@ class _NoteLockingPageState extends State<NoteLockingPage> {
     return confirmation;
   }
 
-  Future<void> _saveNoteToFile(NoteModel note) async {
-    final directory = await getApplicationDocumentsDirectory();
-    final noteFile = File('${directory.path}/${note.noteTitle}.json');
-    await noteFile.writeAsString(jsonEncode(note.toJson()));
-  }
-
   @override
   void initState() {
     getLockingState();
@@ -384,7 +378,9 @@ class _NoteLockingPageState extends State<NoteLockingPage> {
                   : ListTile(
                       leading: const Icon(Icons.pin),
                       title: const Text('Set PIN'),
-                      onTap: enableNoteLock,
+                      onTap: (){
+                        enableNoteLock();
+                      },
                     ),
               const Text('Locked Notes', style: TextStyle(fontSize: 18)),
               if (lockedNotes.isNotEmpty)

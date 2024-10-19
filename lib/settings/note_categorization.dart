@@ -577,7 +577,7 @@ class _NoteCategorizationPageState extends State<NoteCategorizationPage> {
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text("Add category",
+                    Text("Add category",
                         style: TextStyle(color: Colors.green)),
                   ],
                 )),

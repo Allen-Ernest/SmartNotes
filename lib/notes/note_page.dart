@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_notes/notes/note_model.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:smart_notes/notes/view_note.dart';
@@ -27,6 +28,7 @@ class _NotePageState extends State<NotePage> {
       notes = savedNotes;
       isLoading = false;
     });
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${savedNotes.length} motes have been loaded')));
   }
 
   void showInfo(NoteModel note) {
@@ -62,6 +64,134 @@ class _NotePageState extends State<NotePage> {
                 ),
               ),
             ));
+  }
+
+  void toggleLock(NoteModel note) async {
+    if (note.isLocked) {
+      bool confirmation = await confirmPIN();
+      if (confirmation) {
+        setState(() {
+          note.isLocked = false;
+        });
+        int isNotUnlocked = await DatabaseHelper().updateNote(note);
+        if (isNotUnlocked == 1) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content:
+                  Text('Successfully removed lock from ${note.noteTitle}')));
+        }
+      }
+    } else {
+      bool isLockingConfigured = await getLockingState();
+      if (isLockingConfigured) {
+        setState(() {
+          note.isLocked = true;
+        });
+        await DatabaseHelper().updateNote(note);
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('${note.noteTitle} is now locked')));
+      } else {
+        showDialog(
+            context: context,
+            builder: (BuildContext context) => AlertDialog(
+                  title: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: <Icon>[
+                      Icon(Icons.info_outline, color: Colors.green)
+                    ],
+                  ),
+                  content: const Text(
+                      'Note locking is not configured, please go to settings to configure not locking',
+                      textAlign: TextAlign.justify),
+                  actions: <TextButton>[
+                    TextButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          Navigator.pushNamed(context, '/lock_note');
+                        },
+                        child: const Text('Go to Settings',
+                            style: TextStyle(color: Colors.green)))
+                  ],
+                ));
+      }
+    }
+  }
+
+  Future<bool> confirmPIN() async {
+    TextEditingController controller = TextEditingController();
+    String message = '';
+    bool confirmation = await showDialog(
+        context: context,
+        builder: (BuildContext context) => StatefulBuilder(
+                builder: (BuildContext context, StateSetter setDialogState) {
+              var height = MediaQuery.of(context).size.height;
+              return AlertDialog(
+                title: const Row(
+                  children: [
+                    Expanded(
+                      child: Text('Insert PIN to proceed'),
+                    )
+                  ],
+                ),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    TextField(
+                      obscureText: true,
+                      controller: controller,
+                      keyboardType: TextInputType.number,
+                      maxLength: 4,
+                      decoration: InputDecoration(
+                          label: const Icon(Icons.pin),
+                          enabledBorder: OutlineInputBorder(
+                              borderSide: const BorderSide(color: Colors.green),
+                              borderRadius: BorderRadius.circular(12)),
+                          focusedBorder: OutlineInputBorder(
+                              borderSide: const BorderSide(color: Colors.green),
+                              borderRadius: BorderRadius.circular(12))),
+                    ),
+                    if (message.isNotEmpty)
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(height: height * 0.03),
+                          Text(message)
+                        ],
+                      )
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                      onPressed: () async {
+                        FlutterSecureStorage storage =
+                            const FlutterSecureStorage();
+                        String submittedPIN = controller.text.trim();
+                        String? storedPIN = await storage.read(key: 'pin');
+                        if (storedPIN == null) {
+                          Navigator.pop(context, false);
+                          return;
+                        }
+                        if (submittedPIN == storedPIN) {
+                          Navigator.pop(context, true);
+                        }
+                      },
+                      child: const Text('Proceed',
+                          style: TextStyle(color: Colors.green))),
+                  TextButton(
+                      onPressed: () {
+                        Navigator.pop(context, false);
+                      },
+                      child: const Text('Cancel',
+                          style: TextStyle(color: Colors.green)))
+                ],
+              );
+            }));
+    return confirmation;
+  }
+
+  Future<bool> getLockingState() async {
+    SharedPreferences preferences = await SharedPreferences.getInstance();
+    bool? feedback = preferences.getBool('isNoteLockingConfigured');
+    return feedback ?? false;
   }
 
   Future<void> showOptions(NoteModel note) async {
@@ -104,6 +234,7 @@ class _NotePageState extends State<NotePage> {
             leading: const Icon(Icons.lock),
             title: const Text('Lock'),
             onTap: () {
+              toggleLock(note);
               Navigator.pop(context);
             },
           ),
@@ -451,11 +582,14 @@ class _NotePageState extends State<NotePage> {
                     leading: Icon(
                       IconData(category.categoryIcon,
                           fontFamily: category.fontFamily),
-                      color: Color(int.parse(
-                          category.categoryColor, radix: 16)),
+                      color:
+                          Color(int.parse(category.categoryColor, radix: 16)),
                     ),
                     title: Text(note.noteTitle),
                     subtitle: Text(note.noteType),
+                    tileColor:
+                        Color(int.parse(category.categoryColor, radix: 16))
+                            .withOpacity(0.1),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -472,10 +606,6 @@ class _NotePageState extends State<NotePage> {
                     onTap: () {
                       openNote(note);
                     },
-                    tileColor: Color(int.parse(
-                            category.categoryColor,
-                            radix: 16))
-                        .withOpacity(0.1),
                   );
                 },
               )

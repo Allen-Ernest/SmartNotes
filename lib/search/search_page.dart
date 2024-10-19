@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:smart_notes/notes/note_model.dart';
 import 'package:smart_notes/search/search_results.dart';
+import 'package:smart_notes/database/database_helper.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
@@ -34,15 +34,7 @@ class _SearchPageState extends State<SearchPage> {
   List<NoteModel> results = [];
 
   Future<void> fetchNotes() async {
-    final directory = await getApplicationDocumentsDirectory();
-    final noteFiles =
-        directory.listSync().where((file) => file.path.endsWith('.json'));
-    List<NoteModel> loadedNotes = [];
-    for (var file in noteFiles) {
-      final noteContent = await File(file.path).readAsString();
-      final noteJson = jsonDecode(noteContent);
-      loadedNotes.add(NoteModel.fromJson(noteJson));
-    }
+    List<NoteModel> loadedNotes = await DatabaseHelper().getNotes();
     setState(() {
       notes = loadedNotes;
       isLoading = false;
