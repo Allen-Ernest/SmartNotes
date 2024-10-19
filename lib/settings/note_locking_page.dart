@@ -1,11 +1,7 @@
-import 'dart:convert';
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:smart_notes/notes/note_model.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:smart_notes/database/database_helper.dart';
 
 class NoteLockingPage extends StatefulWidget {
@@ -21,12 +17,13 @@ class _NoteLockingPageState extends State<NoteLockingPage> {
 
   fetchLockedNotes() async {
     List<NoteModel> notes = await DatabaseHelper().getNotes();
+    List<NoteModel> notesWithLock = [];
     for (var note in notes) {
       if (note.isLocked) {
-        notes.add(note);
+        notesWithLock.add(note);
       }
       setState(() {
-        lockedNotes = notes;
+        lockedNotes = notesWithLock;
       });
     }
   }
@@ -128,29 +125,25 @@ class _NoteLockingPageState extends State<NoteLockingPage> {
   Future<bool> confirmTurningOffLockOnAllNotes() async {
     final TextEditingController controller = TextEditingController();
     bool confirmation = await showDialog(
-      context: context,
-      builder: (BuildContext context) => AlertDialog(
-        title: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Text('Confirm unlocking all notes')
-          ]
-        ),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: InputDecoration(
-            label: const Icon(Icons.pin),
-            enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Colors.green)),
-            focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Colors.green)),
-          ),
-        ),
-      )
-    );
+        context: context,
+        builder: (BuildContext context) => AlertDialog(
+              title: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[Text('Confirm unlocking all notes')]),
+              content: TextField(
+                controller: controller,
+                autofocus: true,
+                decoration: InputDecoration(
+                  label: const Icon(Icons.pin),
+                  enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colors.green)),
+                  focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colors.green)),
+                ),
+              ),
+            ));
     return confirmation;
   }
 
@@ -258,6 +251,8 @@ class _NoteLockingPageState extends State<NoteLockingPage> {
                           isNoteLockingConfigured = true;
                         });
                         Navigator.pop(context);
+                        Navigator.pushNamedAndRemoveUntil(
+                            context, '/home', (Route<dynamic> route) => false);
                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                             showCloseIcon: true,
                             duration: Duration(seconds: 8),
@@ -298,9 +293,12 @@ class _NoteLockingPageState extends State<NoteLockingPage> {
           await DatabaseHelper().updateNote(note);
         }
         setState(() {
+          lockedNotes.clear();
           isNoteLockingConfigured = false;
         });
       } else {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Invalid PIN')));
         return;
       }
     }
@@ -321,8 +319,13 @@ class _NoteLockingPageState extends State<NoteLockingPage> {
               keyboardType: TextInputType.number,
               maxLength: 4,
               decoration: InputDecoration(
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(5))),
+                label: const Icon(Icons.pin),
+                  focusedBorder: OutlineInputBorder(
+                      borderSide: const BorderSide(color: Colors.green),
+                      borderRadius: BorderRadius.circular(12)),
+                  enabledBorder: OutlineInputBorder(
+                      borderSide: const BorderSide(color: Colors.green),
+                      borderRadius: BorderRadius.circular(12))),
             ),
             actions: <Widget>[
               TextButton(
@@ -378,24 +381,27 @@ class _NoteLockingPageState extends State<NoteLockingPage> {
                   : ListTile(
                       leading: const Icon(Icons.pin),
                       title: const Text('Set PIN'),
-                      onTap: (){
+                      onTap: () {
                         enableNoteLock();
                       },
                     ),
               const Text('Locked Notes', style: TextStyle(fontSize: 18)),
               if (lockedNotes.isNotEmpty)
-                ListView.builder(
-                  itemCount: lockedNotes.length,
-                  itemBuilder: (context, index) {
-                    final lockedNote = lockedNotes[index];
-                    return ListTile(
-                      leading: const Icon(Icons.note),
-                      title: Text(lockedNote.noteTitle),
-                      subtitle: Text(lockedNote.noteType),
-                      trailing: IconButton(
-                          onPressed: () {}, icon: const Icon(Icons.lock_open)),
-                    );
-                  },
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: lockedNotes.length,
+                    itemBuilder: (context, index) {
+                      final lockedNote = lockedNotes[index];
+                      return ListTile(
+                        leading: const Icon(Icons.note),
+                        title: Text(lockedNote.noteTitle),
+                        subtitle: Text(lockedNote.noteType),
+                        trailing: IconButton(
+                            onPressed: () {},
+                            icon: const Icon(Icons.lock_open)),
+                      );
+                    },
+                  ),
                 )
               else
                 const Text('No locked notes available')

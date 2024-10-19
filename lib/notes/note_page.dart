@@ -28,7 +28,8 @@ class _NotePageState extends State<NotePage> {
       notes = savedNotes;
       isLoading = false;
     });
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${savedNotes.length} motes have been loaded')));
+    ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${savedNotes.length} motes have been loaded')));
   }
 
   void showInfo(NoteModel note) {
@@ -99,9 +100,16 @@ class _NotePageState extends State<NotePage> {
                       Icon(Icons.info_outline, color: Colors.green)
                     ],
                   ),
-                  content: const Text(
-                      'Note locking is not configured, please go to settings to configure not locking',
-                      textAlign: TextAlign.justify),
+                  content: Container(
+                    color: Colors.green.withOpacity(0.1),
+                    child: const Padding(
+                      padding: EdgeInsets.all(8.0),
+                      child: Text(
+                          style: TextStyle(color: Colors.green),
+                          'Note locking is not configured, please go to settings to configure not locking',
+                          textAlign: TextAlign.justify),
+                    ),
+                  ),
                   actions: <TextButton>[
                     TextButton(
                         onPressed: () {
@@ -109,7 +117,13 @@ class _NotePageState extends State<NotePage> {
                           Navigator.pushNamed(context, '/lock_note');
                         },
                         child: const Text('Go to Settings',
-                            style: TextStyle(color: Colors.green)))
+                            style: TextStyle(color: Colors.green))),
+                    TextButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        child: const Text('Cancel',
+                            style: TextStyle(color: Colors.green))),
                   ],
                 ));
       }
@@ -117,9 +131,9 @@ class _NotePageState extends State<NotePage> {
   }
 
   Future<bool> confirmPIN() async {
-    TextEditingController controller = TextEditingController();
+    final TextEditingController controller = TextEditingController();
     String message = '';
-    bool confirmation = await showDialog(
+    bool? confirmation = await showDialog(
         context: context,
         builder: (BuildContext context) => StatefulBuilder(
                 builder: (BuildContext context, StateSetter setDialogState) {
@@ -172,6 +186,10 @@ class _NotePageState extends State<NotePage> {
                         }
                         if (submittedPIN == storedPIN) {
                           Navigator.pop(context, true);
+                        } else {
+                          Navigator.pop(context, false);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Invalid PIN')));
                         }
                       },
                       child: const Text('Proceed',
@@ -185,7 +203,7 @@ class _NotePageState extends State<NotePage> {
                 ],
               );
             }));
-    return confirmation;
+    return confirmation ?? false;
   }
 
   Future<bool> getLockingState() async {
@@ -211,6 +229,7 @@ class _NotePageState extends State<NotePage> {
             title: const Text('Add Reminder'),
             onTap: () {
               Navigator.pop(context);
+              toggleReminder(note);
             },
           ),
           note.isBookmarked
@@ -231,11 +250,15 @@ class _NotePageState extends State<NotePage> {
                   },
                 ),
           ListTile(
-            leading: const Icon(Icons.lock),
-            title: const Text('Lock'),
+            leading: note.isLocked
+                ? const Icon(Icons.lock_open)
+                : const Icon(Icons.lock),
+            title: note.isLocked
+                ? const Text('Unlock note')
+                : const Text('Lock note'),
             onTap: () {
-              toggleLock(note);
               Navigator.pop(context);
+              toggleLock(note);
             },
           ),
           ListTile(
@@ -476,7 +499,9 @@ class _NotePageState extends State<NotePage> {
               return AlertDialog(
                 title: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: [Text('Rename ${note.noteTitle}')]),
+                    children: [
+                      Expanded(child: Text('Rename ${note.noteTitle}'))
+                    ]),
                 content: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -543,6 +568,23 @@ class _NotePageState extends State<NotePage> {
             }));
   }
 
+  void toggleReminder(NoteModel note) async {
+    if (note.hasReminder) {
+      setState(() {
+        note.hasReminder = false;
+      });
+      await DatabaseHelper().updateNote(note);
+      //Disable notification
+    } else {
+      //Schedule date and time
+      //Enable notification
+      setState(() {
+        note.hasReminder = false;
+      });
+      await DatabaseHelper().updateNote(note);
+    }
+  }
+
   void loadCategories() async {
     List<CategoryModel> savedCategories =
         await DatabaseHelper().getCategories();
@@ -575,37 +617,40 @@ class _NotePageState extends State<NotePage> {
                       orElse: () => CategoryModel(
                           categoryId: 'default',
                           categoryTitle: 'Default',
-                          categoryColor: '0xFFFF0000',
+                          categoryColor: '0xFF0000',
                           categoryIcon: Icons.note.codePoint,
                           fontFamily: 'MaterialIcons'));
-                  return ListTile(
-                    leading: Icon(
-                      IconData(category.categoryIcon,
-                          fontFamily: category.fontFamily),
-                      color:
-                          Color(int.parse(category.categoryColor, radix: 16)),
+                  return Container(
+                    color: Color(int.parse(category.categoryColor, radix: 16))
+                        .withOpacity(0.1),
+                    child: ListTile(
+                      leading: Icon(
+                        IconData(category.categoryIcon,
+                            fontFamily: category.fontFamily),
+                        color:
+                            Color(int.parse(category.categoryColor, radix: 16)),
+                      ),
+                      title: Text(note.noteTitle),
+                      subtitle: Text(note.noteType),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (note.isBookmarked)
+                            const Icon(Icons.bookmark_outline_sharp),
+                          if (note.isLocked) const Icon(Icons.lock_outlined),
+                          if (note.hasReminder) const Icon(Icons.alarm_on),
+                          IconButton(
+                            icon: const Icon(Icons.more_vert),
+                            onPressed: () {
+                              showOptions(note);
+                            },
+                          ),
+                        ],
+                      ),
+                      onTap: () {
+                        openNote(note);
+                      },
                     ),
-                    title: Text(note.noteTitle),
-                    subtitle: Text(note.noteType),
-                    tileColor:
-                        Color(int.parse(category.categoryColor, radix: 16))
-                            .withOpacity(0.1),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (note.isBookmarked) const Icon(Icons.bookmark),
-                        if (note.isLocked) const Icon(Icons.lock),
-                        IconButton(
-                          icon: const Icon(Icons.more_vert),
-                          onPressed: () {
-                            showOptions(note);
-                          },
-                        ),
-                      ],
-                    ),
-                    onTap: () {
-                      openNote(note);
-                    },
                   );
                 },
               )

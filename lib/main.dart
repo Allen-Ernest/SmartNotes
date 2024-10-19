@@ -29,8 +29,9 @@ class MyNoteBook extends StatelessWidget {
 //TODO: Logo
 //TODO: Format dates
 //TODO: App rating
-//TODO: When note locking gets disabled, all notes that were locked should be unlocked - done
 //TODO: Style the app to have a beautifully UI
-//TODO: Note locking  -done
-//TODO: Modify search page -done
-//TODO: Implement fetchNotes note locking page, then implement category colors and icons for fetched notes - Today
+//TODO: Add condition to check if note is locked to open note
+//TODO: Add more default categories like 10
+//TODO: aDD option to modify note category
+//TODO: fIX HEX color error
+//TODO: Note Sorting ask Gemini

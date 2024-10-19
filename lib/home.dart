@@ -97,6 +97,12 @@ class _HomePageState extends State<HomePage> {
     List appBars = [
       AppBar(
         title: const Text('My Notes'),
+        actions: <Widget>[
+          IconButton(
+            onPressed: (){},
+            icon: const Icon(Icons.sort, color: Colors.green)
+          )
+        ],
       ),
       AppBar(title: const Text('Search')),
       AppBar(title: const Text('Menu')),

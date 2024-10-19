@@ -159,7 +159,7 @@ class _CreateNoteState extends State<CreateNote> {
                         ),
                         SizedBox(height: height * 0.03),
                         DropdownMenu(
-                            hintText: 'Select Note Category',
+                            hintText: 'Select Category',
                             controller: categoryController,
                             dropdownMenuEntries: noteCategories
                                 .map<DropdownMenuEntry<String>>((category) {
