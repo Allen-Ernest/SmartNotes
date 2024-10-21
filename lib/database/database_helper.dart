@@ -1,6 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-import 'package:smart_notes/settings/category_model.dart';
+import 'package:smart_notes/categories/category_model.dart';
 import 'package:smart_notes/notes/note_model.dart';
 
 class DatabaseHelper {

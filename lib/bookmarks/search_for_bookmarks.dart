@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:smart_notes/notes/note_model.dart';
 
+import '../categories/category_model.dart';
 import '../database/database_helper.dart';
 import '../notes/view_note.dart';
 
@@ -72,6 +73,16 @@ class BookmarksSearchResults extends StatefulWidget {
 }
 
 class _BookmarksSearchResultsState extends State<BookmarksSearchResults> {
+  List<CategoryModel> categories = [];
+
+  void loadCategories() async {
+    List<CategoryModel> savedCategories =
+        await DatabaseHelper().getCategories();
+    setState(() {
+      categories = savedCategories;
+    });
+  }
+
   Future<bool> confirmDelete(NoteModel note) async {
     bool confirmation = await showDialog(
         context: context,
@@ -278,18 +289,36 @@ class _BookmarksSearchResultsState extends State<BookmarksSearchResults> {
       itemCount: widget.results.length,
       itemBuilder: (context, index) {
         NoteModel note = widget.results[index];
-        return ListTile(
-          leading: const Icon(Icons.note),
-          title: Text(note.noteTitle),
-          subtitle: Text(note.noteType),
-          onTap: () {
-            openBookmark(note);
-          },
-          trailing: IconButton(
-              onPressed: () {
-                showOptions(note);
-              },
-              icon: const Icon(Icons.more_vert)),
+        CategoryModel category = categories.firstWhere(
+            (cat) => cat.categoryTitle == note.noteType,
+            orElse: () => CategoryModel(
+                categoryId: 'default',
+                categoryTitle: 'Default',
+                categoryColor: '0xFF0000',
+                categoryIcon: Icons.note.codePoint,
+                fontFamily: 'MaterialIcons'));
+        return Container(
+          color: Color(int.parse(category.categoryColor.replaceFirst('0x', ''),
+                  radix: 16))
+              .withOpacity(0.1),
+          child: ListTile(
+            leading: Icon(
+                IconData(category.categoryIcon,
+                    fontFamily: category.fontFamily),
+                color: Color(int.parse(
+                        category.categoryColor.replaceFirst('0x', ''),
+                        radix: 16))),
+            title: Text(note.noteTitle),
+            subtitle: Text(note.noteType),
+            onTap: () {
+              openBookmark(note);
+            },
+            trailing: IconButton(
+                onPressed: () {
+                  showOptions(note);
+                },
+                icon: const Icon(Icons.more_vert)),
+          ),
         );
       },
     );

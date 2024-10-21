@@ -12,7 +12,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
 import 'package:uuid/uuid.dart';
 import 'package:smart_notes/database/database_helper.dart';
-import 'package:smart_notes/settings/category_model.dart';
+import 'package:smart_notes/categories/category_model.dart';
 
 class CreateNote extends StatefulWidget {
   const CreateNote({super.key});

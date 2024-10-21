@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:smart_notes/notes/note_model.dart';
 import 'package:smart_notes/database/database_helper.dart';
 import 'package:smart_notes/bookmarks/search_for_bookmarks.dart';
-
+import 'package:smart_notes/categories/category_model.dart';
 import '../notes/view_note.dart';
 
 class BookmarksPage extends StatefulWidget {
@@ -14,6 +14,7 @@ class BookmarksPage extends StatefulWidget {
 
 class _BookmarksPageState extends State<BookmarksPage> {
   List<NoteModel> bookmarkedNotes = [];
+  List<CategoryModel> categories = [];
   bool isLoading = true;
 
   void fetchBookmarks() async {
@@ -269,9 +270,18 @@ class _BookmarksPageState extends State<BookmarksPage> {
     }
   }
 
+  void loadCategories() async {
+    List<CategoryModel> savedCategories =
+    await DatabaseHelper().getCategories();
+    setState(() {
+      categories = savedCategories;
+    });
+  }
+
   @override
   void initState() {
     fetchBookmarks();
+    loadCategories();
     super.initState();
   }
 
@@ -308,9 +318,22 @@ class _BookmarksPageState extends State<BookmarksPage> {
                         itemCount: bookmarkedNotes.length,
                         itemBuilder: (context, index) {
                           NoteModel note = bookmarkedNotes[index];
+                          CategoryModel category = categories.firstWhere(
+                                  (cat) => cat.categoryTitle == note.noteType,
+                              orElse: () => CategoryModel(
+                                  categoryId: 'default',
+                                  categoryTitle: 'Default',
+                                  categoryColor: '0xFF0000',
+                                  categoryIcon: Icons.note.codePoint,
+                                  fontFamily: 'MaterialIcons'));
                           return ListTile(
-                            leading: const Icon(Icons.note),
+                            leading: Icon(IconData(category.categoryIcon,
+                                fontFamily: category.fontFamily),
+                              color:
+                              Color(int.parse(category.categoryColor, radix: 16)),),
                             title: Text(note.noteTitle),
+                            tileColor: Color(int.parse(category.categoryColor.replaceFirst('0x', ''), radix: 16))
+                                .withOpacity(0.1),
                             trailing: IconButton(
                                 onPressed: () {
                                   showOptions(note);

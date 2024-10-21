@@ -4,10 +4,11 @@ import 'package:smart_notes/search/search_page.dart';
 import 'package:smart_notes/menu/menuPage.dart';
 import 'package:getwidget/getwidget.dart';
 import 'package:smart_notes/database/database_helper.dart';
-import 'package:smart_notes/settings/category_model.dart';
-import 'package:uuid/uuid.dart';
+import 'package:smart_notes/categories/category_model.dart';
 import 'package:animations/animations.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:smart_notes/categories/default_categories.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -18,7 +19,15 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int currentIndex = 0;
-  String groupValue = 'dateCreated';
+  String sortingMode = 'dateCreated-ascending';
+
+  void getSortingOption() async {
+    SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
+    String? sortingMode = sharedPreferences.getString('sortingMode');
+    setState(() {
+      sortingMode = sortingMode ?? 'dateCreated-ascending';
+    });
+  }
 
   void onItemTapped(index) {
     setState(() {
@@ -27,7 +36,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   void rateApp() async {
-    double _rating = 0;
+    double rating = 0;
     showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -36,15 +45,16 @@ class _HomePageState extends State<HomePage> {
                   AlertDialog(
                       title: const Text('Enjoying the app, please rate it'),
                       content: GFRating(
-                          value: _rating,
+                          value: rating,
                           onChanged: (value) {
                             setDialogState(() {
-                              _rating = value;
+                              rating = value;
                             });
                           }),
                       actions: <Widget>[
                         TextButton(
-                            onPressed: () {}, child: const Text('Rate app')),
+                            onPressed: _launchPlayStore,
+                            child: const Text('Rate app')),
                         TextButton(
                             onPressed: () {
                               Navigator.of(context).pop();
@@ -68,29 +78,109 @@ class _HomePageState extends State<HomePage> {
   void _loadCategories() async {
     List<CategoryModel> savedCategories =
         await DatabaseHelper().getCategories();
-    if (savedCategories.isEmpty) {
-      CategoryModel defaultCategory = CategoryModel(
-          categoryId: const Uuid().v4(),
-          categoryTitle: 'General',
-          categoryColor: Colors.grey.value.toRadixString(16),
-          categoryIcon: Icons.category.codePoint,
-          fontFamily: 'MaterialIcons');
-
-      await DatabaseHelper().insertCategory(defaultCategory);
+    if (savedCategories.isEmpty){
+      for (var category in defaultCategories){
+        await DatabaseHelper().insertCategory(category);
+      }
       savedCategories = await DatabaseHelper().getCategories();
     }
+  }
+
+  void _showSortingOptions() async {
+    SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
+    showModalBottomSheet(
+        context: context,
+        builder: (BuildContext context) {
+          return ListView(
+            children: <Widget>[
+              const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('Sorting by'),
+                ],
+              ),
+              RadioListTile(
+                  title: const Text('Alphabetic (ascending)'),
+                  activeColor: Colors.green,
+                  value: 'alphabetic-ascending',
+                  groupValue: sortingMode,
+                  onChanged: (value) {
+                    setState(() {
+                      onSortingModeChanged(value!);
+                      Navigator.pop(context);
+                      sharedPreferences.setString('sortingMode', value);
+                    });
+                  }),
+              RadioListTile(
+                  title: const Text('Alphabetic (descending)'),
+                  activeColor: Colors.green,
+                  value: 'alphabetic-descending',
+                  groupValue: sortingMode,
+                  onChanged: (value) {
+                    setState(() {
+                      onSortingModeChanged(value!);
+                      Navigator.pop(context);
+                      sharedPreferences.setString('sortingMode', value);
+                    });
+                  }),
+              RadioListTile(
+                  title: const Text('Date Created (ascending)'),
+                  activeColor: Colors.green,
+                  value: 'dateCreated-ascending',
+                  groupValue: sortingMode,
+                  onChanged: (value) {
+                    setState(() {
+                      onSortingModeChanged(value!);
+                      Navigator.pop(context);
+                      sharedPreferences.setString('sortingMode', value);
+                    });
+                  }),
+              RadioListTile(
+                  title: const Text('Date Created (descending)'),
+                  activeColor: Colors.green,
+                  value: 'dateCreated-descending',
+                  groupValue: sortingMode,
+                  onChanged: (value) {
+                    setState(() {
+                      onSortingModeChanged(value!);
+                      Navigator.pop(context);
+                      sharedPreferences.setString('sortingMode', value);
+                    });
+                  }),
+              RadioListTile(
+                  title: const Text('Category'),
+                  activeColor: Colors.green,
+                  value: 'type',
+                  groupValue: sortingMode,
+                  onChanged: (value) {
+                    setState(() {
+                      onSortingModeChanged(value!);
+                      Navigator.pop(context);
+                      sharedPreferences.setString('sortingMode', value);
+                    });
+                  }),
+            ],
+          );
+        });
+  }
+
+  void onSortingModeChanged(String newSortingMode){
+    setState(() {
+      sortingMode = newSortingMode;
+    });
   }
 
   @override
   void initState() {
     _loadCategories();
+    getSortingOption();
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
     List<Widget> pages = [
-      const NotePage(),
+      NotePage(sortingMode: sortingMode, onSortingModeChanged: onSortingModeChanged),
       const SearchPage(),
       const MenuPage()
     ];
@@ -99,9 +189,8 @@ class _HomePageState extends State<HomePage> {
         title: const Text('My Notes'),
         actions: <Widget>[
           IconButton(
-            onPressed: (){},
-            icon: const Icon(Icons.sort, color: Colors.green)
-          )
+              onPressed: _showSortingOptions,
+              icon: const Icon(Icons.sort, color: Colors.green))
         ],
       ),
       AppBar(title: const Text('Search')),
@@ -126,7 +215,7 @@ class _HomePageState extends State<HomePage> {
             child: pages[currentIndex]),
       ),
       floatingActionButton: FloatingActionButton(
-        tooltip: 'Create new note',
+          tooltip: 'Create new note',
           backgroundColor: Colors.green,
           onPressed: () {
             Navigator.pushNamed(context, '/create_note');

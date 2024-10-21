@@ -1,17 +1,20 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_notes/notes/note_model.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:smart_notes/notes/view_note.dart';
 import 'package:smart_notes/database/database_helper.dart';
-import 'package:smart_notes/settings/category_model.dart';
+import 'package:smart_notes/categories/category_model.dart';
 
 class NotePage extends StatefulWidget {
-  const NotePage({super.key});
+  const NotePage(
+      {super.key,
+      required this.sortingMode,
+      required this.onSortingModeChanged});
+
+  final Function onSortingModeChanged;
+  final String sortingMode;
 
   @override
   State<NotePage> createState() => _NotePageState();
@@ -24,12 +27,49 @@ class _NotePageState extends State<NotePage> {
 
   Future<void> loadNotes() async {
     List<NoteModel> savedNotes = await DatabaseHelper().getNotes();
+    sortNotes(savedNotes, widget.sortingMode);
     setState(() {
       notes = savedNotes;
       isLoading = false;
     });
     ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${savedNotes.length} motes have been loaded')));
+        SnackBar(content: Text('${savedNotes.length} notes have been loaded')));
+  }
+
+  void sortNotes(List<NoteModel> noteList, String sortingMode) {
+    switch (sortingMode) {
+      case 'alphabetic-ascending':
+        noteList.sort((a, b) =>
+            a.noteTitle.toLowerCase().compareTo(b.noteTitle.toLowerCase()));
+        break;
+      case 'alphabetic-descending':
+        noteList
+            .sort((a, b) => b.noteTitle.toLowerCase().compareTo(a.noteTitle));
+        break;
+      case 'dateCreated-ascending':
+        noteList.sort((a, b) =>
+            b.dateCreated.compareTo(a.dateCreated)); // Most recent first
+        break;
+      case 'dateCreated-descending':
+        noteList.sort((a, b) => a.dateCreated.compareTo(b.dateCreated));
+        break;
+      case 'type':
+        noteList.sort((a, b) =>
+            a.noteType.toLowerCase().compareTo(b.noteType.toLowerCase()));
+        break;
+      default:
+        noteList.sort((a, b) =>
+            a.noteTitle.toLowerCase().compareTo(b.noteTitle.toLowerCase()));
+        break;
+    }
+  }
+
+  void changeSortingMode(String newMode) {
+    widget.onSortingModeChanged(newMode);
+    setState(() {
+      sortNotes(notes, newMode);
+    });
+    debugPrint('SortingMode changed $newMode');
   }
 
   void showInfo(NoteModel note) {
@@ -212,6 +252,74 @@ class _NotePageState extends State<NotePage> {
     return feedback ?? false;
   }
 
+  Future<void> changeNoteCategory(NoteModel note) async {
+    TextEditingController categoryController = TextEditingController();
+    showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return StatefulBuilder(
+              builder: (BuildContext context, StateSetter setDialogState) {
+            return AlertDialog(
+              title: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Expanded(
+                    child: Text('Change Note Category'),
+                  )
+                ],
+              ),
+              content: DropdownMenu(
+                  hintText: 'Select Category',
+                  controller: categoryController,
+                  dropdownMenuEntries:
+                      categories.map<DropdownMenuEntry<String>>((category) {
+                    return DropdownMenuEntry<String>(
+                        value: category.categoryId,
+                        label: category.categoryTitle,
+                        leadingIcon: Icon(IconData(category.categoryIcon,
+                            fontFamily: category.fontFamily)));
+                  }).toList()),
+              actions: <Widget>[
+                TextButton(
+                    onPressed: () async {
+                      final String newCategory = categoryController.text.trim();
+                      if (newCategory == note.noteType) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content:
+                                    Text('No changes made in note category')));
+                        return;
+                      }
+                      if (newCategory.isEmpty) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Note category not updated')));
+                        return;
+                      }
+                      setState(() {
+                        note.noteType = newCategory;
+                      });
+                      await DatabaseHelper().updateNote(note);
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                          content: Text('Successfully updated note category')));
+                    },
+                    child: const Text('Change Category',
+                        style: TextStyle(color: Colors.green))),
+                TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    child: const Text('Cancel',
+                        style: TextStyle(color: Colors.green)))
+              ],
+            );
+          });
+        });
+  }
+
   Future<void> showOptions(NoteModel note) async {
     showModalBottomSheet(
       context: context,
@@ -270,6 +378,14 @@ class _NotePageState extends State<NotePage> {
             },
           ),
           ListTile(
+            leading: const Icon(Icons.category),
+            title: const Text('Change note category'),
+            onTap: () {
+              Navigator.pop(context);
+              changeNoteCategory(note);
+            },
+          ),
+          ListTile(
             leading: const Icon(Icons.info),
             title: const Text('Info'),
             onTap: () {
@@ -291,8 +407,18 @@ class _NotePageState extends State<NotePage> {
   }
 
   void openNote(NoteModel note) async {
-    Navigator.of(context).push(
-        MaterialPageRoute(builder: (context) => NoteViewingPage(note: note)));
+    if (note.isLocked) {
+      bool isAuthenticated = await confirmPIN();
+      if (isAuthenticated) {
+        Navigator.of(context).push(MaterialPageRoute(
+            builder: (context) => NoteViewingPage(note: note)));
+      } else {
+        return;
+      }
+    } else {
+      Navigator.of(context).push(
+          MaterialPageRoute(builder: (context) => NoteViewingPage(note: note)));
+    }
   }
 
   void deleteNote(NoteModel note) async {
@@ -346,40 +472,6 @@ class _NotePageState extends State<NotePage> {
             SnackBar(content: Text('${note.noteTitle} added to bookmarks')))
         : ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text('${note.noteTitle} removed from bookmarks')));
-  }
-
-  void toggleNoteLock(NoteModel note) async {
-    if (note.isLocked) {
-      bool confirmation = await removeLock(note);
-      if (confirmation) {
-        setState(() {
-          note.isLocked = false;
-        });
-        final directory = await getApplicationDocumentsDirectory();
-        final file = File('${directory.path}/${note.noteTitle}.json');
-        if (await file.exists()) {
-          final updatedNoteJson = jsonEncode(note.toJson());
-          await file.writeAsString(updatedNoteJson);
-        }
-      } else {
-        return;
-      }
-    } else {
-      bool confirmation = await confirmLocking(note);
-      if (confirmation) {
-        setState(() {
-          note.isLocked = true;
-        });
-        final directory = await getApplicationDocumentsDirectory();
-        final file = File('${directory.path}/${note.noteTitle}.json');
-        if (await file.exists()) {
-          final updatedNoteJson = jsonEncode(note.toJson());
-          await file.writeAsString(updatedNoteJson);
-        }
-      } else {
-        return;
-      }
-    }
   }
 
   Future<bool> confirmLocking(NoteModel note) async {
@@ -621,7 +713,7 @@ class _NotePageState extends State<NotePage> {
                           categoryIcon: Icons.note.codePoint,
                           fontFamily: 'MaterialIcons'));
                   return Container(
-                    color: Color(int.parse(category.categoryColor, radix: 16))
+                    color: Color(int.parse(category.categoryColor.replaceFirst('0x', ''), radix: 16))
                         .withOpacity(0.1),
                     child: ListTile(
                       leading: Icon(

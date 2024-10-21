@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_iconpicker_plus/flutter_iconpicker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:smart_notes/notes/note_model.dart';
-import 'package:smart_notes/settings/category_model.dart';
+import 'package:smart_notes/categories/category_model.dart';
 import 'package:uuid/uuid.dart';
 import 'package:smart_notes/database/database_helper.dart';
 import 'package:smart_notes/settings/edit_category.dart';

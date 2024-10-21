@@ -18,6 +18,7 @@ class MyNoteBook extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         title: 'My Notebook',
         theme: themeProvider.isDarkTheme ? ThemeData.dark(useMaterial3: true) : ThemeData.light(useMaterial3: true),
+        themeAnimationDuration: const Duration(seconds: 1),
         routes: routes,
         initialRoute: '/home',
       );
@@ -26,12 +27,6 @@ class MyNoteBook extends StatelessWidget {
 }
 
 //TODO: Alarms - Tomorrow
-//TODO: Logo
+//TODO: App icon
 //TODO: Format dates
 //TODO: App rating
-//TODO: Style the app to have a beautifully UI
-//TODO: Add condition to check if note is locked to open note
-//TODO: Add more default categories like 10
-//TODO: aDD option to modify note category
-//TODO: fIX HEX color error
-//TODO: Note Sorting ask Gemini

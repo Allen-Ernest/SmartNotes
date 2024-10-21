@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_iconpicker_plus/flutter_iconpicker.dart';
 import 'package:smart_notes/database/database_helper.dart';
-import 'package:smart_notes/settings/category_model.dart';
+import 'package:smart_notes/categories/category_model.dart';
 
 class EditCategoryPage extends StatefulWidget {
   const EditCategoryPage({super.key, required this.categoryModel});
