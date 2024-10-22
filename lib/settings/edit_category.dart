@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_iconpicker_plus/flutter_iconpicker.dart';
 import 'package:smart_notes/database/database_helper.dart';
 import 'package:smart_notes/categories/category_model.dart';
+import 'package:smart_notes/notes/note_model.dart';
 
 class EditCategoryPage extends StatefulWidget {
   const EditCategoryPage({super.key, required this.categoryModel});
@@ -14,6 +15,8 @@ class EditCategoryPage extends StatefulWidget {
 
 class _EditCategoryPageState extends State<EditCategoryPage> {
   List<CategoryModel> categories = [];
+  List<NoteModel> notes = [];
+  TextEditingController controller = TextEditingController();
   IconData? newIconData;
   Color? themeColor;
   String? fontFamily;
@@ -23,6 +26,19 @@ class _EditCategoryPageState extends State<EditCategoryPage> {
         await DatabaseHelper().getCategories();
     setState(() {
       categories = savedCategories;
+    });
+  }
+
+  void _loadRespectiveNotes() async {
+    List<NoteModel> allNotes = await DatabaseHelper().getNotes();
+    List<NoteModel> filteredNotes = [];
+    for (var note in allNotes) {
+      if (note.noteType == widget.categoryModel.categoryTitle) {
+        filteredNotes.add(note);
+      }
+    }
+    setState(() {
+      notes = filteredNotes;
     });
   }
 
@@ -429,13 +445,12 @@ class _EditCategoryPageState extends State<EditCategoryPage> {
   @override
   void initState() {
     _loadCategories();
+    _loadRespectiveNotes();
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
-    TextEditingController controller =
-        TextEditingController(text: widget.categoryModel.categoryTitle);
     CategoryModel category = widget.categoryModel;
     return Scaffold(
       appBar: AppBar(
@@ -475,24 +490,26 @@ class _EditCategoryPageState extends State<EditCategoryPage> {
             ),
             ElevatedButton(
                 onPressed: () async {
-                  try {
-                    String colorHex = themeColor!.value.toRadixString(16);
-                    int iconCodePoint = newIconData!.codePoint;
-                    CategoryModel updatedCategory = CategoryModel(
-                        categoryId: category.categoryId,
-                        categoryTitle: _capitalizeFirstLetter(controller.text.trim()),
-                        categoryColor: colorHex,
-                        categoryIcon: iconCodePoint,
-                        fontFamily: 'MaterialIcons');
-                    await DatabaseHelper().updateCategory(updatedCategory);
-                  } catch (error) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('An error occurred')));
-                  } finally {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                        content: Text('Successfully updated category')));
-                    Navigator.pushReplacementNamed(context, '/category');
+                  String colorHex = themeColor?.value.toRadixString(16) ??
+                      widget.categoryModel.categoryColor;
+                  int iconCodePoint = newIconData?.codePoint ??
+                      widget.categoryModel.categoryIcon;
+                  CategoryModel updatedCategory = CategoryModel(
+                      categoryId: category.categoryId,
+                      categoryTitle:
+                          _capitalizeFirstLetter(controller.text.trim()),
+                      categoryColor: colorHex,
+                      categoryIcon: iconCodePoint,
+                      fontFamily: 'MaterialIcons');
+                  await DatabaseHelper().updateCategory(updatedCategory);
+                  for (var note in notes) {
+                    note.noteType = updatedCategory.categoryTitle;
+                    await DatabaseHelper().updateNote(note);
                   }
+                  Navigator.pushNamedAndRemoveUntil(
+                      context, '/home', (Route<dynamic> route) => false);
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                      content: Text('Successfully updated category')));
                 },
                 child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,

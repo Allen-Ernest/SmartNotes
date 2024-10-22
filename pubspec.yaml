@@ -53,6 +53,8 @@ dependencies:
   open_file: ^3.5.7
   url_launcher: ^6.3.1
   flutter_native_splash: ^2.4.2
+  flutter_launcher_icons: ^0.14.1
+  tutorial_coach_mark: ^1.2.11
 
 dev_dependencies:
   flutter_test:
@@ -85,6 +87,12 @@ flutter_native_splash:
   image: assets/logo.png
   android: true
   fullscreen: true
+
+flutter_icons:
+  android: true
+  image_path: "assets/logo.png"
+  adaptive_icon_background: "#00FF00"
+  adaptive_icon_foreground: "assets/logo.png"
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

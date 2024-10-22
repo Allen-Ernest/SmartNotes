@@ -25,7 +25,7 @@ class _SearchResultsState extends State<SearchResults> {
 
   void loadCategories() async {
     List<CategoryModel> savedCategories =
-        await DatabaseHelper().getCategories();
+    await DatabaseHelper().getCategories();
     setState(() {
       categories = savedCategories;
     });
@@ -51,74 +51,80 @@ class _SearchResultsState extends State<SearchResults> {
     String message = '';
     bool? confirmation = await showDialog(
         context: context,
-        builder: (BuildContext context) => StatefulBuilder(
+        builder: (BuildContext context) =>
+            StatefulBuilder(
                 builder: (BuildContext context, StateSetter setDialogState) {
-              var height = MediaQuery.of(context).size.height;
-              return AlertDialog(
-                title: const Row(
-                  children: [
-                    Expanded(
-                      child: Text('Insert PIN to proceed'),
-                    )
-                  ],
-                ),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    TextField(
-                      obscureText: true,
-                      controller: controller,
-                      keyboardType: TextInputType.number,
-                      maxLength: 4,
-                      decoration: InputDecoration(
-                          label: const Icon(Icons.pin),
-                          enabledBorder: OutlineInputBorder(
-                              borderSide: const BorderSide(color: Colors.green),
-                              borderRadius: BorderRadius.circular(12)),
-                          focusedBorder: OutlineInputBorder(
-                              borderSide: const BorderSide(color: Colors.green),
-                              borderRadius: BorderRadius.circular(12))),
+                  var height = MediaQuery
+                      .of(context)
+                      .size
+                      .height;
+                  return AlertDialog(
+                    title: const Row(
+                      children: [
+                        Expanded(
+                          child: Text('Insert PIN to proceed'),
+                        )
+                      ],
                     ),
-                    if (message.isNotEmpty)
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          SizedBox(height: height * 0.03),
-                          Text(message)
-                        ],
-                      )
-                  ],
-                ),
-                actions: [
-                  TextButton(
-                      onPressed: () async {
-                        FlutterSecureStorage storage =
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        TextField(
+                          obscureText: true,
+                          controller: controller,
+                          keyboardType: TextInputType.number,
+                          maxLength: 4,
+                          decoration: InputDecoration(
+                              label: const Icon(Icons.pin),
+                              enabledBorder: OutlineInputBorder(
+                                  borderSide: const BorderSide(color: Colors
+                                      .green),
+                                  borderRadius: BorderRadius.circular(12)),
+                              focusedBorder: OutlineInputBorder(
+                                  borderSide: const BorderSide(color: Colors
+                                      .green),
+                                  borderRadius: BorderRadius.circular(12))),
+                        ),
+                        if (message.isNotEmpty)
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SizedBox(height: height * 0.03),
+                              Text(message)
+                            ],
+                          )
+                      ],
+                    ),
+                    actions: [
+                      TextButton(
+                          onPressed: () async {
+                            FlutterSecureStorage storage =
                             const FlutterSecureStorage();
-                        String submittedPIN = controller.text.trim();
-                        String? storedPIN = await storage.read(key: 'pin');
-                        if (storedPIN == null) {
-                          Navigator.pop(context, false);
-                          return;
-                        }
-                        if (submittedPIN == storedPIN) {
-                          Navigator.pop(context, true);
-                        } else {
-                          Navigator.pop(context, false);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Invalid PIN')));
-                        }
-                      },
-                      child: const Text('Proceed',
-                          style: TextStyle(color: Colors.green))),
-                  TextButton(
-                      onPressed: () {
-                        Navigator.pop(context, false);
-                      },
-                      child: const Text('Cancel',
-                          style: TextStyle(color: Colors.green)))
-                ],
-              );
-            }));
+                            String submittedPIN = controller.text.trim();
+                            String? storedPIN = await storage.read(key: 'pin');
+                            if (storedPIN == null) {
+                              Navigator.pop(context, false);
+                              return;
+                            }
+                            if (submittedPIN == storedPIN) {
+                              Navigator.pop(context, true);
+                            } else {
+                              Navigator.pop(context, false);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Invalid PIN')));
+                            }
+                          },
+                          child: const Text('Proceed',
+                              style: TextStyle(color: Colors.green))),
+                      TextButton(
+                          onPressed: () {
+                            Navigator.pop(context, false);
+                          },
+                          child: const Text('Cancel',
+                              style: TextStyle(color: Colors.green)))
+                    ],
+                  );
+                }));
     return confirmation ?? false;
   }
 
@@ -126,85 +132,86 @@ class _SearchResultsState extends State<SearchResults> {
     showModalBottomSheet(
       context: context,
       showDragHandle: true,
-      builder: (BuildContext context) => ListView(
-        children: <Widget>[
-          const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+      builder: (BuildContext context) =>
+          ListView(
             children: <Widget>[
-              Text('Actions'),
+              const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Text('Actions'),
+                ],
+              ),
+              ListTile(
+                leading: const Icon(Icons.alarm_add),
+                title: const Text('Add Reminder'),
+                onTap: () {
+                  Navigator.pop(context);
+                  toggleReminder(note);
+                },
+              ),
+              note.isBookmarked
+                  ? ListTile(
+                leading: const Icon(Icons.bookmark_remove),
+                title: const Text('Remove from bookmarks'),
+                onTap: () {
+                  toggleBookmark(note, false);
+                  Navigator.pop(context);
+                },
+              )
+                  : ListTile(
+                leading: const Icon(Icons.bookmark_add),
+                title: const Text('Add to bookmarks'),
+                onTap: () {
+                  toggleBookmark(note, true);
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                leading: note.isLocked
+                    ? const Icon(Icons.lock_open)
+                    : const Icon(Icons.lock),
+                title: note.isLocked
+                    ? const Text('Unlock note')
+                    : const Text('Lock note'),
+                onTap: () {
+                  Navigator.pop(context);
+                  toggleLock(note);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.abc),
+                title: const Text('Rename'),
+                onTap: () {
+                  Navigator.pop(context);
+                  renameNote(note);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.category),
+                title: const Text('Change note category'),
+                onTap: () {
+                  Navigator.pop(context);
+                  changeNoteCategory(note);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.info),
+                title: const Text('Info'),
+                onTap: () {
+                  Navigator.pop(context);
+                  showInfo(note);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete_forever),
+                title: const Text('Delete Note'),
+                onTap: () {
+                  Navigator.pop(context);
+                  deleteNote(note);
+                },
+              ),
             ],
           ),
-          ListTile(
-            leading: const Icon(Icons.alarm_add),
-            title: const Text('Add Reminder'),
-            onTap: () {
-              Navigator.pop(context);
-              toggleReminder(note);
-            },
-          ),
-          note.isBookmarked
-              ? ListTile(
-                  leading: const Icon(Icons.bookmark_remove),
-                  title: const Text('Remove from bookmarks'),
-                  onTap: () {
-                    toggleBookmark(note, false);
-                    Navigator.pop(context);
-                  },
-                )
-              : ListTile(
-                  leading: const Icon(Icons.bookmark_add),
-                  title: const Text('Add to bookmarks'),
-                  onTap: () {
-                    toggleBookmark(note, true);
-                    Navigator.pop(context);
-                  },
-                ),
-          ListTile(
-            leading: note.isLocked
-                ? const Icon(Icons.lock_open)
-                : const Icon(Icons.lock),
-            title: note.isLocked
-                ? const Text('Unlock note')
-                : const Text('Lock note'),
-            onTap: () {
-              Navigator.pop(context);
-              toggleLock(note);
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.abc),
-            title: const Text('Rename'),
-            onTap: () {
-              Navigator.pop(context);
-              renameNote(note);
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.category),
-            title: const Text('Change note category'),
-            onTap: () {
-              Navigator.pop(context);
-              changeNoteCategory(note);
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.info),
-            title: const Text('Info'),
-            onTap: () {
-              Navigator.pop(context);
-              showInfo(note);
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.delete_forever),
-            title: const Text('Delete Note'),
-            onTap: () {
-              Navigator.pop(context);
-              deleteNote(note);
-            },
-          ),
-        ],
-      ),
     );
   }
 
@@ -242,7 +249,8 @@ class _SearchResultsState extends State<SearchResults> {
   Future<bool> confirmDelete(NoteModel note) async {
     bool isConfirmed = await showDialog(
         context: context,
-        builder: (BuildContext context) => AlertDialog(
+        builder: (BuildContext context) =>
+            AlertDialog(
                 title: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [Text('Delete Note')]),
@@ -267,7 +275,8 @@ class _SearchResultsState extends State<SearchResults> {
   void showInfo(NoteModel note) {
     showDialog(
         context: context,
-        builder: (BuildContext context) => AlertDialog(
+        builder: (BuildContext context) =>
+            AlertDialog(
               title: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [Icon(Icons.info)],
@@ -305,7 +314,7 @@ class _SearchResultsState extends State<SearchResults> {
         if (isNotUnlocked == 1) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
               content:
-                  Text('Successfully removed lock from ${note.noteTitle}')));
+              Text('Successfully removed lock from ${note.noteTitle}')));
         }
       }
     } else {
@@ -320,7 +329,8 @@ class _SearchResultsState extends State<SearchResults> {
       } else {
         showDialog(
             context: context,
-            builder: (BuildContext context) => AlertDialog(
+            builder: (BuildContext context) =>
+                AlertDialog(
                   title: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: <Icon>[
@@ -370,64 +380,68 @@ class _SearchResultsState extends State<SearchResults> {
         builder: (BuildContext context) {
           return StatefulBuilder(
               builder: (BuildContext context, StateSetter setDialogState) {
-            return AlertDialog(
-              title: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  Expanded(
-                    child: Text('Change Note Category'),
-                  )
-                ],
-              ),
-              content: DropdownMenu(
-                  hintText: 'Select Category',
-                  controller: categoryController,
-                  dropdownMenuEntries:
+                return AlertDialog(
+                  title: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: <Widget>[
+                      Expanded(
+                        child: Text('Change Note Category'),
+                      )
+                    ],
+                  ),
+                  content: DropdownMenu(
+                      hintText: 'Select Category',
+                      controller: categoryController,
+                      dropdownMenuEntries:
                       categories.map<DropdownMenuEntry<String>>((category) {
-                    return DropdownMenuEntry<String>(
-                        value: category.categoryId,
-                        label: category.categoryTitle,
-                        leadingIcon: Icon(IconData(category.categoryIcon,
-                            fontFamily: category.fontFamily)));
-                  }).toList()),
-              actions: <Widget>[
-                TextButton(
-                    onPressed: () async {
-                      final String newCategory = categoryController.text.trim();
-                      if (newCategory == note.noteType) {
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content:
+                        return DropdownMenuEntry<String>(
+                            value: category.categoryId,
+                            label: category.categoryTitle,
+                            leadingIcon: Icon(IconData(category.categoryIcon,
+                                fontFamily: category.fontFamily)));
+                      }).toList()),
+                  actions: <Widget>[
+                    TextButton(
+                        onPressed: () async {
+                          final String newCategory = categoryController.text
+                              .trim();
+                          if (newCategory == note.noteType) {
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content:
                                     Text('No changes made in note category')));
-                        return;
-                      }
-                      if (newCategory.isEmpty) {
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Note category not updated')));
-                        return;
-                      }
-                      setState(() {
-                        note.noteType = newCategory;
-                      });
-                      await DatabaseHelper().updateNote(note);
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                          content: Text('Successfully updated note category')));
-                    },
-                    child: const Text('Change Category',
-                        style: TextStyle(color: Colors.green))),
-                TextButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    child: const Text('Cancel',
-                        style: TextStyle(color: Colors.green)))
-              ],
-            );
-          });
+                            return;
+                          }
+                          if (newCategory.isEmpty) {
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text(
+                                        'Note category not updated')));
+                            return;
+                          }
+                          setState(() {
+                            note.noteType = newCategory;
+                          });
+                          await DatabaseHelper().updateNote(note);
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text(
+                                      'Successfully updated note category')));
+                        },
+                        child: const Text('Change Category',
+                            style: TextStyle(color: Colors.green))),
+                    TextButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        child: const Text('Cancel',
+                            style: TextStyle(color: Colors.green)))
+                  ],
+                );
+              });
         });
   }
 
@@ -453,79 +467,86 @@ class _SearchResultsState extends State<SearchResults> {
     String? message;
     showDialog(
         context: context,
-        builder: (BuildContext context) => StatefulBuilder(
+        builder: (BuildContext context) =>
+            StatefulBuilder(
                 builder: (BuildContext context, StateSetter setDialogSate) {
-              var height = MediaQuery.of(context).size.height;
-              return AlertDialog(
-                title: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Expanded(child: Text('Rename ${note.noteTitle}'))
-                    ]),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: controller,
-                      decoration: InputDecoration(
-                        hintText: 'New title',
-                        enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Colors.green)),
-                        focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Colors.green)),
-                      ),
-                    ),
-                    if (message != null)
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
+                  var height = MediaQuery
+                      .of(context)
+                      .size
+                      .height;
+                  return AlertDialog(
+                    title: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          SizedBox(height: height * 0.03),
-                          Text(message!),
-                        ],
-                      )
-                  ],
-                ),
-                actions: <TextButton>[
-                  TextButton(
-                      onPressed: () async {
-                        final String newTitle = controller.text.trim();
-                        if (newTitle.toLowerCase() ==
-                            note.noteTitle.toLowerCase()) {
-                          setDialogSate(() {
-                            message = 'Please, use a new title';
-                          });
-                          return;
-                        }
-                        setState(() {
-                          note.noteTitle = newTitle;
-                        });
-                        int isNotUpdated =
+                          Expanded(child: Text('Rename ${note.noteTitle}'))
+                        ]),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextField(
+                          controller: controller,
+                          decoration: InputDecoration(
+                            hintText: 'New title',
+                            enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                    color: Colors.green)),
+                            focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                    color: Colors.green)),
+                          ),
+                        ),
+                        if (message != null)
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SizedBox(height: height * 0.03),
+                              Text(message!),
+                            ],
+                          )
+                      ],
+                    ),
+                    actions: <TextButton>[
+                      TextButton(
+                          onPressed: () async {
+                            final String newTitle = controller.text.trim();
+                            if (newTitle.toLowerCase() ==
+                                note.noteTitle.toLowerCase()) {
+                              setDialogSate(() {
+                                message = 'Please, use a new title';
+                              });
+                              return;
+                            }
+                            setState(() {
+                              note.noteTitle = newTitle;
+                            });
+                            int isNotUpdated =
                             await DatabaseHelper().updateNote(note);
-                        if (isNotUpdated == 1) {
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('Successfully renamed note')));
-                        } else {
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('Failed renaming note')));
-                        }
-                      },
-                      child: const Text('Rename',
-                          style: TextStyle(color: Colors.green))),
-                  TextButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                      child: const Text('Cancel',
-                          style: TextStyle(color: Colors.green)))
-                ],
-              );
-            }));
+                            if (isNotUpdated == 1) {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                      content: Text(
+                                          'Successfully renamed note')));
+                            } else {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                      content: Text('Failed renaming note')));
+                            }
+                          },
+                          child: const Text('Rename',
+                              style: TextStyle(color: Colors.green))),
+                      TextButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
+                          child: const Text('Cancel',
+                              style: TextStyle(color: Colors.green)))
+                    ],
+                  );
+                }));
   }
 
   Future<bool> removeLock(NoteModel note) async {
@@ -536,7 +557,10 @@ class _SearchResultsState extends State<SearchResults> {
         builder: (BuildContext context) {
           return StatefulBuilder(
             builder: (BuildContext context, StateSetter setDialogState) {
-              var height = MediaQuery.of(context).size.height;
+              var height = MediaQuery
+                  .of(context)
+                  .size
+                  .height;
               return AlertDialog(
                 title: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -545,12 +569,13 @@ class _SearchResultsState extends State<SearchResults> {
                   child: Column(mainAxisSize: MainAxisSize.min, children: [
                     Container(
                       decoration:
-                          BoxDecoration(color: Colors.green.withOpacity(0.1)),
+                      BoxDecoration(color: Colors.green.withOpacity(0.1)),
                       child: Padding(
                         padding: const EdgeInsets.all(8.0),
                         child: Text(
                             style: const TextStyle(color: Colors.green),
-                            'Insert unlock PIN to confirming removing lock from ${note.noteTitle}'),
+                            'Insert unlock PIN to confirming removing lock from ${note
+                                .noteTitle}'),
                       ),
                     ),
                     SizedBox(height: height * 0.01),
@@ -576,7 +601,7 @@ class _SearchResultsState extends State<SearchResults> {
                       onPressed: () async {
                         String insertedPIN = controller.text.trim();
                         FlutterSecureStorage storage =
-                            const FlutterSecureStorage();
+                        const FlutterSecureStorage();
                         String? savedPIN = await storage.read(key: 'pin');
                         if (savedPIN != null) {
                           if (insertedPIN == savedPIN) {
@@ -597,7 +622,7 @@ class _SearchResultsState extends State<SearchResults> {
                       Navigator.pop(context, false);
                     },
                     child:
-                        const Text('NO', style: TextStyle(color: Colors.green)),
+                    const Text('NO', style: TextStyle(color: Colors.green)),
                   ),
                 ],
               );
@@ -615,28 +640,35 @@ class _SearchResultsState extends State<SearchResults> {
         itemBuilder: (context, index) {
           if (results.isNotEmpty) {
             NoteModel note = results[index];
-            CategoryModel category = categories.firstWhere(
-                (cat) => cat.categoryTitle == note.noteType,
-                orElse: () => CategoryModel(
-                    categoryId: 'default',
-                    categoryTitle: 'Default',
-                    categoryColor: '0xFF0000',
-                    categoryIcon: Icons.note.codePoint,
-                    fontFamily: 'MaterialIcons'));
+            CategoryModel category = categories.firstWhere((cat) => cat.categoryTitle == note.noteType, orElse: () => CategoryModel(
+              categoryId: 'default',
+              categoryTitle: 'Default',
+              categoryColor: '0xFF0000',
+              categoryIcon: Icons.note.codePoint,
+              fontFamily: 'MaterialIcons'
+            ));
             return ListTile(
               leading: Icon(
                 IconData(category.categoryIcon,
                     fontFamily: category.fontFamily),
-                color: Color(int.parse(category.categoryColor.replaceFirst('0x', ''), radix: 16)),
+                color: Color(int.parse(
+                    category.categoryColor.replaceFirst('0x', ''), radix: 16)),
               ),
-              tileColor: Color(int.parse(category.categoryColor.replaceFirst('0x', ''), radix: 16))
+              tileColor: Color(int.parse(
+                  category.categoryColor.replaceFirst('0x', ''), radix: 16))
                   .withOpacity(0.1),
               title: Text(note.noteTitle),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
+                  if (note.isBookmarked)
+                    const Icon(Icons.bookmark_outline_sharp),
+                  if (note.isLocked) const Icon(Icons.lock_outlined),
+                  if (note.hasReminder) const Icon(Icons.alarm_on),
                   IconButton(
-                      onPressed: () {}, icon: const Icon(Icons.more_vert))
+                      onPressed: () {
+                        showOptions(note);
+                      }, icon: const Icon(Icons.more_vert))
                 ],
               ),
               onTap: () {

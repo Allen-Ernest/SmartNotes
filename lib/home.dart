@@ -20,6 +20,8 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int currentIndex = 0;
   String sortingMode = 'dateCreated-ascending';
+  int maxIgnoredPrompts = 3;
+  int ignoredCount = 0;
 
   void getSortingOption() async {
     SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
@@ -33,6 +35,18 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       currentIndex = index;
     });
+  }
+
+  void _checkAndShowRatingDialog() async {
+    SharedPreferences preferences = await SharedPreferences.getInstance();
+    bool hasRated = preferences.getBool('hasRated') ?? false;
+    ignoredCount = preferences.getInt('ignoredCount') ?? 0;
+
+    if (!hasRated && ignoredCount < maxIgnoredPrompts){
+      Future.delayed(const Duration(seconds: 3), (){
+        rateApp();
+      });
+    }
   }
 
   void rateApp() async {
@@ -53,20 +67,41 @@ class _HomePageState extends State<HomePage> {
                           }),
                       actions: <Widget>[
                         TextButton(
-                            onPressed: _launchPlayStore,
-                            child: const Text('Rate app')),
-                        TextButton(
-                            onPressed: () {
+                            onPressed: () async {
+                              if (rating > 0){
+                                await _launchPlayStore();
+                                _markAsRated();
+                              } else {
+                                _incrementIgnoreCount();
+                              }
                               Navigator.of(context).pop();
                             },
                             child: const Text('Rate app')),
+                        TextButton(
+                            onPressed: () {
+                              _incrementIgnoreCount();
+                              Navigator.of(context).pop();
+                            },
+                            child: const Text('Maybe later')),
                       ]));
         });
   }
 
+  void _incrementIgnoreCount() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    ignoredCount = prefs.getInt('ignoredCount') ?? 0;
+    ignoredCount++;
+    prefs.setInt('ignoredCount', ignoredCount);
+  }
+
+  void _markAsRated() async {
+    SharedPreferences preferences = await SharedPreferences.getInstance();
+    preferences.setBool('hasRated', true);
+  }
+
   Future<void> _launchPlayStore() async {
     final Uri playStoreUrl = Uri.parse(
-        'https://play.google.com/store/apps/details?id=com.bytecode.smart_notes.smart_notes'); // Replace with your app's package ID
+        'https://play.google.com/store/apps/details?id=com.bytecode.smart_notes.smart_notes');
 
     if (await canLaunchUrl(playStoreUrl)) {
       await launchUrl(playStoreUrl, mode: LaunchMode.externalApplication);
@@ -89,6 +124,7 @@ class _HomePageState extends State<HomePage> {
   void _showSortingOptions() async {
     SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
     showModalBottomSheet(
+      showDragHandle: true,
         context: context,
         builder: (BuildContext context) {
           return ListView(
@@ -174,6 +210,7 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     _loadCategories();
     getSortingOption();
+    _checkAndShowRatingDialog();
     super.initState();
   }
 

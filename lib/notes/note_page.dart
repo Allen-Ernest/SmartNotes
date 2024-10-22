@@ -44,11 +44,11 @@ class _NotePageState extends State<NotePage> {
         break;
       case 'alphabetic-descending':
         noteList
-            .sort((a, b) => b.noteTitle.toLowerCase().compareTo(a.noteTitle));
+            .sort((a, b) => b.noteTitle.toLowerCase().compareTo(a.noteTitle.toLowerCase()));
         break;
       case 'dateCreated-ascending':
         noteList.sort((a, b) =>
-            b.dateCreated.compareTo(a.dateCreated)); // Most recent first
+            b.dateCreated.compareTo(a.dateCreated));
         break;
       case 'dateCreated-descending':
         noteList.sort((a, b) => a.dateCreated.compareTo(b.dateCreated));
@@ -69,6 +69,7 @@ class _NotePageState extends State<NotePage> {
     setState(() {
       sortNotes(notes, newMode);
     });
+    loadNotes();
     debugPrint('SortingMode changed $newMode');
   }
 
@@ -720,7 +721,7 @@ class _NotePageState extends State<NotePage> {
                         IconData(category.categoryIcon,
                             fontFamily: category.fontFamily),
                         color:
-                            Color(int.parse(category.categoryColor, radix: 16)),
+                            Color(int.parse(category.categoryColor.replaceFirst('0x', ''), radix: 16)),
                       ),
                       title: Text(note.noteTitle),
                       subtitle: Text(note.noteType),

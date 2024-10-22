@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:smart_notes/notes/note_model.dart';
 import 'package:smart_notes/database/database_helper.dart';
 import 'package:smart_notes/bookmarks/search_for_bookmarks.dart';
@@ -32,8 +33,94 @@ class _BookmarksPageState extends State<BookmarksPage> {
   }
 
   void openBookmark(NoteModel note) async {
-    Navigator.of(context).push(
-        MaterialPageRoute(builder: (context) => NoteViewingPage(note: note)));
+    if (note.isLocked) {
+      bool isAuthenticated = await confirmPIN();
+      if (isAuthenticated) {
+        Navigator.of(context).push(MaterialPageRoute(
+            builder: (context) => NoteViewingPage(note: note)));
+      } else {
+        return;
+      }
+    } else {
+      Navigator.of(context).push(
+          MaterialPageRoute(builder: (context) => NoteViewingPage(note: note)));
+    }
+  }
+
+  Future<bool> confirmPIN() async {
+    final TextEditingController controller = TextEditingController();
+    String message = '';
+    bool? confirmation = await showDialog(
+        context: context,
+        builder: (BuildContext context) => StatefulBuilder(
+            builder: (BuildContext context, StateSetter setDialogState) {
+              var height = MediaQuery.of(context).size.height;
+              return AlertDialog(
+                title: const Row(
+                  children: [
+                    Expanded(
+                      child: Text('Insert PIN to proceed'),
+                    )
+                  ],
+                ),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    TextField(
+                      obscureText: true,
+                      controller: controller,
+                      keyboardType: TextInputType.number,
+                      maxLength: 4,
+                      decoration: InputDecoration(
+                          label: const Icon(Icons.pin),
+                          enabledBorder: OutlineInputBorder(
+                              borderSide: const BorderSide(color: Colors.green),
+                              borderRadius: BorderRadius.circular(12)),
+                          focusedBorder: OutlineInputBorder(
+                              borderSide: const BorderSide(color: Colors.green),
+                              borderRadius: BorderRadius.circular(12))),
+                    ),
+                    if (message.isNotEmpty)
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(height: height * 0.03),
+                          Text(message)
+                        ],
+                      )
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                      onPressed: () async {
+                        FlutterSecureStorage storage =
+                        const FlutterSecureStorage();
+                        String submittedPIN = controller.text.trim();
+                        String? storedPIN = await storage.read(key: 'pin');
+                        if (storedPIN == null) {
+                          Navigator.pop(context, false);
+                          return;
+                        }
+                        if (submittedPIN == storedPIN) {
+                          Navigator.pop(context, true);
+                        } else {
+                          Navigator.pop(context, false);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Invalid PIN')));
+                        }
+                      },
+                      child: const Text('Proceed',
+                          style: TextStyle(color: Colors.green))),
+                  TextButton(
+                      onPressed: () {
+                        Navigator.pop(context, false);
+                      },
+                      child: const Text('Cancel',
+                          style: TextStyle(color: Colors.green)))
+                ],
+              );
+            }));
+    return confirmation ?? false;
   }
 
   void removeFromBookmarks(NoteModel note) async {
@@ -330,7 +417,7 @@ class _BookmarksPageState extends State<BookmarksPage> {
                             leading: Icon(IconData(category.categoryIcon,
                                 fontFamily: category.fontFamily),
                               color:
-                              Color(int.parse(category.categoryColor, radix: 16)),),
+                              Color(int.parse(category.categoryColor.replaceFirst('0x', ''), radix: 16))),
                             title: Text(note.noteTitle),
                             tileColor: Color(int.parse(category.categoryColor.replaceFirst('0x', ''), radix: 16))
                                 .withOpacity(0.1),

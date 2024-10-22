@@ -26,7 +26,9 @@ class MyNoteBook extends StatelessWidget {
   }
 }
 
-//TODO: Alarms - Tomorrow
-//TODO: App icon
+//TODO: Alarms
 //TODO: Format dates
-//TODO: App rating
+//TODO: App rating -done
+//TODO: App tutorial
+//TODO: fIX ERRORS category update error
+//TODO: When category is edited all notes of same category should be updated - done
