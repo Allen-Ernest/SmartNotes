@@ -6,6 +6,7 @@ import 'package:smart_notes/notes/note_model.dart';
 import 'package:smart_notes/notes/view_note.dart';
 import 'package:smart_notes/database/database_helper.dart';
 import 'package:smart_notes/categories/category_model.dart';
+import 'package:awesome_notifications/awesome_notifications.dart';
 
 class NotePage extends StatefulWidget {
   const NotePage(
@@ -43,12 +44,11 @@ class _NotePageState extends State<NotePage> {
             a.noteTitle.toLowerCase().compareTo(b.noteTitle.toLowerCase()));
         break;
       case 'alphabetic-descending':
-        noteList
-            .sort((a, b) => b.noteTitle.toLowerCase().compareTo(a.noteTitle.toLowerCase()));
+        noteList.sort((a, b) =>
+            b.noteTitle.toLowerCase().compareTo(a.noteTitle.toLowerCase()));
         break;
       case 'dateCreated-ascending':
-        noteList.sort((a, b) =>
-            b.dateCreated.compareTo(a.dateCreated));
+        noteList.sort((a, b) => b.dateCreated.compareTo(a.dateCreated));
         break;
       case 'dateCreated-descending':
         noteList.sort((a, b) => a.dateCreated.compareTo(b.dateCreated));
@@ -335,7 +335,9 @@ class _NotePageState extends State<NotePage> {
           ),
           ListTile(
             leading: const Icon(Icons.alarm_add),
-            title: const Text('Add Reminder'),
+            title: note.hasReminder
+                ? const Text('Remove Reminder')
+                : const Text('Add Reminder'),
             onTap: () {
               Navigator.pop(context);
               toggleReminder(note);
@@ -430,6 +432,9 @@ class _NotePageState extends State<NotePage> {
         setState(() {
           notes.remove(note);
         });
+        if (note.hasReminder) {
+          await AwesomeNotifications().cancel(int.parse(note.noteId));
+        }
         ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('${note.noteTitle} Successfully deleted')));
       }
@@ -662,20 +667,60 @@ class _NotePageState extends State<NotePage> {
   }
 
   void toggleReminder(NoteModel note) async {
-    if (note.hasReminder) {
+    if (!note.hasReminder) {
+      DateTime? selectedDate = await showDatePicker(
+          context: context,
+          initialDate: DateTime.now(),
+          firstDate: DateTime.now(),
+          lastDate: DateTime(2100));
+
+      if (selectedDate == null) return;
+
+      TimeOfDay? selectedTime = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.now(),
+      );
+
+      if (selectedTime == null) return;
+
+      DateTime reminderDateTime = DateTime(
+        selectedDate.year,
+        selectedDate.month,
+        selectedDate.day,
+        selectedTime.hour,
+        selectedTime.minute,
+      );
+
+      await AwesomeNotifications().createNotification(
+        content: NotificationContent(
+            id: int.parse(note.noteId),
+            channelKey: 'scheduled_channel',
+            title: 'Reminder: ${note.noteTitle}',
+            body: 'Time to check your note',
+            notificationLayout: NotificationLayout.Default,
+            payload: {'noteId': note.noteId}),
+        actionButtons: [
+          NotificationActionButton(
+              key: 'OPEN_NOTE',
+              label: 'Open Note',
+              actionType: ActionType.Default)
+        ],
+        schedule: NotificationCalendar.fromDate(date: reminderDateTime),
+      );
       setState(() {
-        note.hasReminder = false;
+        note.hasReminder = true;
+        note.reminderTime = reminderDateTime;
       });
-      await DatabaseHelper().updateNote(note);
-      //Disable notification
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(
+              'Notification for ${note.noteTitle} scheduled at ${note.reminderTime}')));
     } else {
-      //Schedule date and time
-      //Enable notification
+      await AwesomeNotifications().cancel(int.parse(note.noteId));
       setState(() {
         note.hasReminder = false;
       });
-      await DatabaseHelper().updateNote(note);
     }
+    await DatabaseHelper().updateNote(note);
   }
 
   void loadCategories() async {
@@ -714,14 +759,17 @@ class _NotePageState extends State<NotePage> {
                           categoryIcon: Icons.note.codePoint,
                           fontFamily: 'MaterialIcons'));
                   return Container(
-                    color: Color(int.parse(category.categoryColor.replaceFirst('0x', ''), radix: 16))
+                    color: Color(int.parse(
+                            category.categoryColor.replaceFirst('0x', ''),
+                            radix: 16))
                         .withOpacity(0.1),
                     child: ListTile(
                       leading: Icon(
                         IconData(category.categoryIcon,
                             fontFamily: category.fontFamily),
-                        color:
-                            Color(int.parse(category.categoryColor.replaceFirst('0x', ''), radix: 16)),
+                        color: Color(int.parse(
+                            category.categoryColor.replaceFirst('0x', ''),
+                            radix: 16)),
                       ),
                       title: Text(note.noteTitle),
                       subtitle: Text(note.noteType),

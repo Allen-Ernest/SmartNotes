@@ -88,6 +88,16 @@ class DatabaseHelper {
     });
   }
 
+  Future<NoteModel> getNoteById(String noteId) async {
+    Database db = await database;
+    List<Map<String, dynamic>> result = await db.query('notes', where: 'noteId  ?', whereArgs: [noteId]);
+    if (result.isNotEmpty){
+      return NoteModel.fromJson(result.first);
+    } else {
+      throw Exception('Note with id $noteId not found');
+    }
+  }
+
   Future<int> updateNote(NoteModel note) async {
     Database db = await database;
     return await db.update('notes', note.toJson(), where: 'noteId = ?', whereArgs: [note.noteId]);
