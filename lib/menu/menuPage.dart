@@ -3,7 +3,6 @@ import 'package:animations/animations.dart';
 
 import '../bookmarks/bookmarksPage.dart';
 import '../exports/exportsPage.dart';
-import '../notifications/reminders_page.dart';
 import '../settings/settingsPage.dart';
 
 class MenuPage extends StatelessWidget {
@@ -13,13 +12,6 @@ class MenuPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView(
       children: <ListTile>[
-        ListTile(
-          leading: const Icon(Icons.alarm),
-          title: const Text('Reminders'),
-          onTap: () {
-            _navigateWithTransition(context, '/reminders');
-          },
-        ),
         ListTile(
           leading: const Icon(Icons.bookmark),
           title: const Text('Bookmarks'),
@@ -62,8 +54,6 @@ class MenuPage extends StatelessWidget {
 
   Widget _getPageByRoute(String routeName) {
     switch (routeName) {
-      case '/reminders':
-        return const RemindersPage();
       case '/bookmarks':
         return const BookmarksPage();
       case '/exports':

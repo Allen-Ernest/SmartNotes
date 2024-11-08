@@ -6,16 +6,10 @@ import 'package:smart_notes/notes/note_model.dart';
 import 'package:smart_notes/notes/view_note.dart';
 import 'package:smart_notes/database/database_helper.dart';
 import 'package:smart_notes/categories/category_model.dart';
-import 'package:awesome_notifications/awesome_notifications.dart';
+import 'package:getwidget/getwidget.dart';
 
 class NotePage extends StatefulWidget {
-  const NotePage(
-      {super.key,
-      required this.sortingMode,
-      required this.onSortingModeChanged});
-
-  final Function onSortingModeChanged;
-  final String sortingMode;
+  const NotePage({super.key});
 
   @override
   State<NotePage> createState() => _NotePageState();
@@ -28,49 +22,12 @@ class _NotePageState extends State<NotePage> {
 
   Future<void> loadNotes() async {
     List<NoteModel> savedNotes = await DatabaseHelper().getNotes();
-    sortNotes(savedNotes, widget.sortingMode);
     setState(() {
       notes = savedNotes;
       isLoading = false;
     });
     ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('${savedNotes.length} notes have been loaded')));
-  }
-
-  void sortNotes(List<NoteModel> noteList, String sortingMode) {
-    switch (sortingMode) {
-      case 'alphabetic-ascending':
-        noteList.sort((a, b) =>
-            a.noteTitle.toLowerCase().compareTo(b.noteTitle.toLowerCase()));
-        break;
-      case 'alphabetic-descending':
-        noteList.sort((a, b) =>
-            b.noteTitle.toLowerCase().compareTo(a.noteTitle.toLowerCase()));
-        break;
-      case 'dateCreated-ascending':
-        noteList.sort((a, b) => b.dateCreated.compareTo(a.dateCreated));
-        break;
-      case 'dateCreated-descending':
-        noteList.sort((a, b) => a.dateCreated.compareTo(b.dateCreated));
-        break;
-      case 'type':
-        noteList.sort((a, b) =>
-            a.noteType.toLowerCase().compareTo(b.noteType.toLowerCase()));
-        break;
-      default:
-        noteList.sort((a, b) =>
-            a.noteTitle.toLowerCase().compareTo(b.noteTitle.toLowerCase()));
-        break;
-    }
-  }
-
-  void changeSortingMode(String newMode) {
-    widget.onSortingModeChanged(newMode);
-    setState(() {
-      sortNotes(notes, newMode);
-    });
-    loadNotes();
-    debugPrint('SortingMode changed $newMode');
   }
 
   void showInfo(NoteModel note) {
@@ -196,7 +153,7 @@ class _NotePageState extends State<NotePage> {
                       keyboardType: TextInputType.number,
                       maxLength: 4,
                       decoration: InputDecoration(
-                          label: const Icon(Icons.pin),
+                          label: const Icon(Icons.pin, color: Colors.green),
                           enabledBorder: OutlineInputBorder(
                               borderSide: const BorderSide(color: Colors.green),
                               borderRadius: BorderRadius.circular(12)),
@@ -215,32 +172,35 @@ class _NotePageState extends State<NotePage> {
                   ],
                 ),
                 actions: [
-                  TextButton(
-                      onPressed: () async {
-                        FlutterSecureStorage storage =
-                            const FlutterSecureStorage();
-                        String submittedPIN = controller.text.trim();
-                        String? storedPIN = await storage.read(key: 'pin');
-                        if (storedPIN == null) {
-                          Navigator.pop(context, false);
-                          return;
-                        }
-                        if (submittedPIN == storedPIN) {
-                          Navigator.pop(context, true);
-                        } else {
-                          Navigator.pop(context, false);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Invalid PIN')));
-                        }
-                      },
-                      child: const Text('Proceed',
-                          style: TextStyle(color: Colors.green))),
-                  TextButton(
+                  GFButton(
+                    color: GFColors.TRANSPARENT,
+                    textColor: Colors.green,
+                    borderSide: const BorderSide(color: Colors.green),
+                    text: 'Proceed',
+                    onPressed: () async {
+                      FlutterSecureStorage storage =
+                          const FlutterSecureStorage();
+                      String submittedPIN = controller.text.trim();
+                      String? storedPIN = await storage.read(key: 'pin');
+                      if (storedPIN == null) {
+                        Navigator.pop(context, false);
+                        return;
+                      }
+                      if (submittedPIN == storedPIN) {
+                        Navigator.pop(context, true);
+                      } else {
+                        Navigator.pop(context, false);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Invalid PIN')));
+                      }
+                    },
+                  ),
+                  GFButton(
+                      color: Colors.green,
                       onPressed: () {
                         Navigator.pop(context, false);
                       },
-                      child: const Text('Cancel',
-                          style: TextStyle(color: Colors.green)))
+                      text: 'Cancel'),
                 ],
               );
             }));
@@ -281,7 +241,7 @@ class _NotePageState extends State<NotePage> {
                             fontFamily: category.fontFamily)));
                   }).toList()),
               actions: <Widget>[
-                TextButton(
+                GFButton(
                     onPressed: () async {
                       final String newCategory = categoryController.text.trim();
                       if (newCategory == note.noteType) {
@@ -307,14 +267,16 @@ class _NotePageState extends State<NotePage> {
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                           content: Text('Successfully updated note category')));
                     },
-                    child: const Text('Change Category',
-                        style: TextStyle(color: Colors.green))),
-                TextButton(
+                    text: "Change category",
+                    type: GFButtonType.outline,
+                    textColor: Colors.green,
+                    borderSide: const BorderSide(color: Colors.green)),
+                GFButton(
                     onPressed: () {
                       Navigator.pop(context);
                     },
-                    child: const Text('Cancel',
-                        style: TextStyle(color: Colors.green)))
+                    text: "Cancel",
+                    color: Colors.green)
               ],
             );
           });
@@ -333,16 +295,7 @@ class _NotePageState extends State<NotePage> {
               Text('Actions'),
             ],
           ),
-          ListTile(
-            leading: const Icon(Icons.alarm_add),
-            title: note.hasReminder
-                ? const Text('Remove Reminder')
-                : const Text('Add Reminder'),
-            onTap: () {
-              Navigator.pop(context);
-              toggleReminder(note);
-            },
-          ),
+          const Divider(),
           note.isBookmarked
               ? ListTile(
                   leading: const Icon(Icons.bookmark_remove),
@@ -424,7 +377,84 @@ class _NotePageState extends State<NotePage> {
     }
   }
 
+  Future<bool> insertPINToDelete() async {
+    final TextEditingController controller = TextEditingController();
+    final bool confirmation = await showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Expanded(child: Text('Insert PIN to delete note')),
+                ]),
+            content: TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              maxLength: 4,
+              decoration: InputDecoration(
+                label: const Icon(Icons.pin, color: Colors.green),
+                enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Colors.green)),
+                focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Colors.green)),
+              ),
+            ),
+            actions: [
+              GFButton(
+                type: GFButtonType.outline,
+                  borderSide: const BorderSide(color: Colors.green),
+                  textColor: Colors.green,
+                  onPressed: () async {
+                    FlutterSecureStorage storage = const FlutterSecureStorage();
+                    String submittedPIN = controller.text.trim();
+                    String? storedPIN = await storage.read(key: 'pin');
+                    if (storedPIN == null) {
+                      Navigator.pop(context, false);
+                      return;
+                    }
+                    if (submittedPIN == storedPIN) {
+                      Navigator.pop(context, true);
+                    } else {
+                      Navigator.pop(context, false);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Invalid PIN')));
+                    }
+                  },
+                  text: "Delete"),
+              GFButton(
+                  onPressed: () {
+                    Navigator.pop(context, false);
+                  },
+                  text: "Cancel",
+                color: Colors.green,
+                borderSide: const BorderSide(color: Colors.green),
+                  )
+            ],
+          );
+        });
+    return confirmation;
+  }
+
   void deleteNote(NoteModel note) async {
+    if (note.isLocked) {
+      bool confirmation = await insertPINToDelete();
+      if (confirmation) {
+        int isNoteDeleted = await DatabaseHelper().deleteNote(note.noteId);
+        if (isNoteDeleted == 1) {
+          setState(() {
+            notes.remove(note);
+          });
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text('${note.noteTitle} Successfully deleted')));
+        }
+      } else {
+        return;
+      }
+      return;
+    }
     bool confirmation = await confirmDelete(note);
     if (confirmation) {
       int isNoteDeleted = await DatabaseHelper().deleteNote(note.noteId);
@@ -432,9 +462,7 @@ class _NotePageState extends State<NotePage> {
         setState(() {
           notes.remove(note);
         });
-        if (note.hasReminder) {
-          await AwesomeNotifications().cancel(int.parse(note.noteId));
-        }
+
         ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('${note.noteTitle} Successfully deleted')));
       }
@@ -452,18 +480,21 @@ class _NotePageState extends State<NotePage> {
                     children: [Text('Delete Note')]),
                 content: Text('Confirm deleting note ${note.noteTitle}'),
                 actions: [
-                  TextButton(
+                  GFButton(
                       onPressed: () {
                         Navigator.pop(context, true);
                       },
-                      child: const Text('YES',
-                          style: TextStyle(color: Colors.green))),
-                  TextButton(
+                      type: GFButtonType.outline,
+                      borderSide: const BorderSide(color: Colors.green),
+                      textColor: Colors.green,
+                      text: "YES"),
+                  GFButton(
                       onPressed: () {
                         Navigator.pop(context, false);
                       },
-                      child: const Text('NO',
-                          style: TextStyle(color: Colors.green)))
+                      color: Colors.green,
+                      borderSide: const BorderSide(color: Colors.green),
+                      text: "NO")
                 ]));
     return isConfirmed;
   }
@@ -625,102 +656,48 @@ class _NotePageState extends State<NotePage> {
                       )
                   ],
                 ),
-                actions: <TextButton>[
-                  TextButton(
-                      onPressed: () async {
-                        final String newTitle = controller.text.trim();
-                        if (newTitle.toLowerCase() ==
-                            note.noteTitle.toLowerCase()) {
-                          setDialogSate(() {
-                            message = 'Please, use a new title';
-                          });
-                          return;
-                        }
-                        setState(() {
-                          note.noteTitle = newTitle;
+                actions: <Widget>[
+                  GFButton(
+                    onPressed: () async {
+                      final String newTitle = controller.text.trim();
+                      if (newTitle.toLowerCase() ==
+                          note.noteTitle.toLowerCase()) {
+                        setDialogSate(() {
+                          message = 'Please, use a new title';
                         });
-                        int isNotUpdated =
-                            await DatabaseHelper().updateNote(note);
-                        if (isNotUpdated == 1) {
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('Successfully renamed note')));
-                        } else {
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('Failed renaming note')));
-                        }
-                      },
-                      child: const Text('Rename',
-                          style: TextStyle(color: Colors.green))),
-                  TextButton(
+                        return;
+                      }
+                      setState(() {
+                        note.noteTitle = newTitle;
+                      });
+                      int isNotUpdated =
+                          await DatabaseHelper().updateNote(note);
+                      if (isNotUpdated == 1) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Successfully renamed note')));
+                      } else {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Failed renaming note')));
+                      }
+                    },
+                    text: "Rename",
+                    textColor: Colors.green,
+                    type: GFButtonType.outline,
+                    borderSide: const BorderSide(color: Colors.green),
+                  ),
+                  GFButton(
                       onPressed: () {
                         Navigator.pop(context);
                       },
-                      child: const Text('Cancel',
-                          style: TextStyle(color: Colors.green)))
+                      text: 'Cancel',
+                      color: Colors.green)
                 ],
               );
             }));
-  }
-
-  void toggleReminder(NoteModel note) async {
-    if (!note.hasReminder) {
-      DateTime? selectedDate = await showDatePicker(
-          context: context,
-          initialDate: DateTime.now(),
-          firstDate: DateTime.now(),
-          lastDate: DateTime(2100));
-
-      if (selectedDate == null) return;
-
-      TimeOfDay? selectedTime = await showTimePicker(
-        context: context,
-        initialTime: TimeOfDay.now(),
-      );
-
-      if (selectedTime == null) return;
-
-      DateTime reminderDateTime = DateTime(
-        selectedDate.year,
-        selectedDate.month,
-        selectedDate.day,
-        selectedTime.hour,
-        selectedTime.minute,
-      );
-
-      await AwesomeNotifications().createNotification(
-        content: NotificationContent(
-            id: int.parse(note.noteId),
-            channelKey: 'scheduled_channel',
-            title: 'Reminder: ${note.noteTitle}',
-            body: 'Time to check your note',
-            notificationLayout: NotificationLayout.Default,
-            payload: {'noteId': note.noteId}),
-        actionButtons: [
-          NotificationActionButton(
-              key: 'OPEN_NOTE',
-              label: 'Open Note',
-              actionType: ActionType.Default)
-        ],
-        schedule: NotificationCalendar.fromDate(date: reminderDateTime),
-      );
-      setState(() {
-        note.hasReminder = true;
-        note.reminderTime = reminderDateTime;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(
-              'Notification for ${note.noteTitle} scheduled at ${note.reminderTime}')));
-    } else {
-      await AwesomeNotifications().cancel(int.parse(note.noteId));
-      setState(() {
-        note.hasReminder = false;
-      });
-    }
-    await DatabaseHelper().updateNote(note);
   }
 
   void loadCategories() async {

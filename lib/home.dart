@@ -59,6 +59,8 @@ class _HomePageState extends State<HomePage> {
                   AlertDialog(
                       title: const Text('Enjoying the app, please rate it'),
                       content: GFRating(
+                        color: Colors.green,
+                          borderColor: Colors.green,
                           value: rating,
                           onChanged: (value) {
                             setDialogState(() {
@@ -76,13 +78,13 @@ class _HomePageState extends State<HomePage> {
                               }
                               Navigator.of(context).pop();
                             },
-                            child: const Text('Rate app')),
+                            child: const Text('Rate app', style: TextStyle(color: Colors.green))),
                         TextButton(
                             onPressed: () {
                               _incrementIgnoreCount();
                               Navigator.of(context).pop();
                             },
-                            child: const Text('Maybe later')),
+                            child: const Text('Maybe later', style: TextStyle(color: Colors.green))),
                       ]));
         });
   }
@@ -121,95 +123,10 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void _showSortingOptions() async {
-    SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
-    showModalBottomSheet(
-      showDragHandle: true,
-        context: context,
-        builder: (BuildContext context) {
-          return ListView(
-            children: <Widget>[
-              const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('Sorting by'),
-                ],
-              ),
-              RadioListTile(
-                  title: const Text('Alphabetic (ascending)'),
-                  activeColor: Colors.green,
-                  value: 'alphabetic-ascending',
-                  groupValue: sortingMode,
-                  onChanged: (value) {
-                    setState(() {
-                      onSortingModeChanged(value!);
-                      Navigator.pop(context);
-                      sharedPreferences.setString('sortingMode', value);
-                    });
-                  }),
-              RadioListTile(
-                  title: const Text('Alphabetic (descending)'),
-                  activeColor: Colors.green,
-                  value: 'alphabetic-descending',
-                  groupValue: sortingMode,
-                  onChanged: (value) {
-                    setState(() {
-                      onSortingModeChanged(value!);
-                      Navigator.pop(context);
-                      sharedPreferences.setString('sortingMode', value);
-                    });
-                  }),
-              RadioListTile(
-                  title: const Text('Date Created (ascending)'),
-                  activeColor: Colors.green,
-                  value: 'dateCreated-ascending',
-                  groupValue: sortingMode,
-                  onChanged: (value) {
-                    setState(() {
-                      onSortingModeChanged(value!);
-                      Navigator.pop(context);
-                      sharedPreferences.setString('sortingMode', value);
-                    });
-                  }),
-              RadioListTile(
-                  title: const Text('Date Created (descending)'),
-                  activeColor: Colors.green,
-                  value: 'dateCreated-descending',
-                  groupValue: sortingMode,
-                  onChanged: (value) {
-                    setState(() {
-                      onSortingModeChanged(value!);
-                      Navigator.pop(context);
-                      sharedPreferences.setString('sortingMode', value);
-                    });
-                  }),
-              RadioListTile(
-                  title: const Text('Category'),
-                  activeColor: Colors.green,
-                  value: 'type',
-                  groupValue: sortingMode,
-                  onChanged: (value) {
-                    setState(() {
-                      onSortingModeChanged(value!);
-                      Navigator.pop(context);
-                      sharedPreferences.setString('sortingMode', value);
-                    });
-                  }),
-            ],
-          );
-        });
-  }
-
-  void onSortingModeChanged(String newSortingMode){
-    setState(() {
-      sortingMode = newSortingMode;
-    });
-  }
 
   @override
   void initState() {
     _loadCategories();
-    getSortingOption();
     _checkAndShowRatingDialog();
     super.initState();
   }
@@ -217,18 +134,13 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     List<Widget> pages = [
-      NotePage(sortingMode: sortingMode, onSortingModeChanged: onSortingModeChanged),
+      const NotePage(),
       const SearchPage(),
       const MenuPage()
     ];
     List appBars = [
       AppBar(
         title: const Text('My Notes'),
-        actions: <Widget>[
-          IconButton(
-              onPressed: _showSortingOptions,
-              icon: const Icon(Icons.sort, color: Colors.green))
-        ],
       ),
       AppBar(title: const Text('Search')),
       AppBar(title: const Text('Menu')),

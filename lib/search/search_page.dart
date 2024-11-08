@@ -3,8 +3,6 @@ import 'package:smart_notes/notes/note_model.dart';
 import 'package:smart_notes/search/search_results.dart';
 import 'package:smart_notes/database/database_helper.dart';
 
-import '../categories/category_model.dart';
-
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
 

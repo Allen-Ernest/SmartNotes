@@ -351,9 +351,9 @@ class _BookmarksPageState extends State<BookmarksPage> {
       setState(() {
         bookmarkedNotes.clear();
       });
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text(
-              'Cleared all ${bookmarkedNotes.length} bookmarks successfully')));
+              'Cleared all bookmarks successfully')));
     }
   }
 

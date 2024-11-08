@@ -640,23 +640,10 @@ class _SearchResultsState extends State<SearchResults> {
         itemBuilder: (context, index) {
           if (results.isNotEmpty) {
             NoteModel note = results[index];
-            CategoryModel category = categories.firstWhere((cat) => cat.categoryTitle == note.noteType, orElse: () => CategoryModel(
-              categoryId: 'default',
-              categoryTitle: 'Default',
-              categoryColor: '0xFF0000',
-              categoryIcon: Icons.note.codePoint,
-              fontFamily: 'MaterialIcons'
-            ));
             return ListTile(
-              leading: Icon(
-                IconData(category.categoryIcon,
-                    fontFamily: category.fontFamily),
-                color: Color(int.parse(
-                    category.categoryColor.replaceFirst('0x', ''), radix: 16)),
+              leading: const Icon(
+                Icons.edit_note, color: Colors.green,
               ),
-              tileColor: Color(int.parse(
-                  category.categoryColor.replaceFirst('0x', ''), radix: 16))
-                  .withOpacity(0.1),
               title: Text(note.noteTitle),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -664,7 +651,6 @@ class _SearchResultsState extends State<SearchResults> {
                   if (note.isBookmarked)
                     const Icon(Icons.bookmark_outline_sharp),
                   if (note.isLocked) const Icon(Icons.lock_outlined),
-                  if (note.hasReminder) const Icon(Icons.alarm_on),
                   IconButton(
                       onPressed: () {
                         showOptions(note);

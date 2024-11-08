@@ -121,9 +121,28 @@ class _BookmarksSearchResultsState extends State<BookmarksSearchResults> {
     if (widget.results.isEmpty) {
       return const Center(child: Text('No bookmarks found'));
     }
+
     void openBookmark(NoteModel note) async {
-      Navigator.of(context).push(
-          MaterialPageRoute(builder: (context) => NoteViewingPage(note: note)));
+      if (!note.isLocked) {
+        Navigator.of(context).push(MaterialPageRoute(
+            builder: (context) => NoteViewingPage(note: note)));
+      } else {
+        final bool confirmation = await showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              final TextEditingController controller = TextEditingController();
+              return AlertDialog(
+                  title: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: <Widget>[
+                        Text('Note Locked'),
+                      ]),
+                  content: TextField(
+                      controller: controller,
+                      decoration:
+                          InputDecoration(label: const Icon(Icons.pin), enabledBorder: OutlineInputBorder(), focusedBorder: OutlineInputBorder())));
+            });
+      }
     }
 
     void removeFromBookmarks(NoteModel note) async {
@@ -286,41 +305,21 @@ class _BookmarksSearchResultsState extends State<BookmarksSearchResults> {
     }
 
     return ListView.builder(
-      itemCount: widget.results.length,
-      itemBuilder: (context, index) {
-        NoteModel note = widget.results[index];
-        CategoryModel category = categories.firstWhere(
-            (cat) => cat.categoryTitle == note.noteType,
-            orElse: () => CategoryModel(
-                categoryId: 'default',
-                categoryTitle: 'Default',
-                categoryColor: '0xFF0000',
-                categoryIcon: Icons.note.codePoint,
-                fontFamily: 'MaterialIcons'));
-        return Container(
-          color: Color(int.parse(category.categoryColor.replaceFirst('0x', ''),
-                  radix: 16))
-              .withOpacity(0.1),
-          child: ListTile(
-            leading: Icon(
-                IconData(category.categoryIcon,
-                    fontFamily: category.fontFamily),
-                color: Color(int.parse(
-                        category.categoryColor.replaceFirst('0x', ''),
-                        radix: 16))),
+        itemCount: widget.results.length,
+        itemBuilder: (context, index) {
+          NoteModel note = widget.results[index];
+          return ListTile(
+            leading: const Icon(Icons.edit_note, color: Colors.green),
             title: Text(note.noteTitle),
-            subtitle: Text(note.noteType),
-            onTap: () {
-              openBookmark(note);
-            },
             trailing: IconButton(
                 onPressed: () {
                   showOptions(note);
                 },
                 icon: const Icon(Icons.more_vert)),
-          ),
-        );
-      },
-    );
+            onTap: () {
+              openBookmark(note);
+            },
+          );
+        });
   }
 }

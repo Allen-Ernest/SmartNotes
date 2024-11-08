@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:smart_notes/notes/note_model.dart';
 import 'package:smart_notes/database/database_helper.dart';
+import 'package:getwidget/getwidget.dart';
 
 class NoteLockingPage extends StatefulWidget {
   const NoteLockingPage({super.key});
@@ -55,6 +56,8 @@ class _NoteLockingPageState extends State<NoteLockingPage> {
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text("Unable to remove lock from note")));
       }
+    } else {
+      return;
     }
   }
 
@@ -72,8 +75,9 @@ class _NoteLockingPageState extends State<NoteLockingPage> {
                   autofocus: true,
                   controller: controller,
                   keyboardType: TextInputType.number,
+                  maxLength: 4,
                   decoration: InputDecoration(
-                    label: const Icon(Icons.pin),
+                    label: const Icon(Icons.pin, color: Colors.green),
                     enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: const BorderSide(color: Colors.green)),
@@ -84,37 +88,35 @@ class _NoteLockingPageState extends State<NoteLockingPage> {
                 )
               ],
             ),
-            actions: <TextButton>[
-              TextButton(
-                onPressed: () {},
-                child: const Text('Confirm'),
-              ),
-              TextButton(
-                onPressed: () async {
-                  FlutterSecureStorage storage = const FlutterSecureStorage();
-                  String? pin = await storage.read(key: 'pin');
-                  if (pin != null) {
-                    String insertedPIN = controller.text.trim();
-                    if (insertedPIN == pin) {
-                      Navigator.pop(context, true);
+            actions: [
+              GFButton(
+                  onPressed: () async {
+                    FlutterSecureStorage storage = const FlutterSecureStorage();
+                    String? pin = await storage.read(key: 'pin');
+                    if (pin != null) {
+                      String insertedPIN = controller.text.trim();
+                      if (insertedPIN == pin) {
+                        Navigator.pop(context, true);
+                      } else {
+                        Navigator.pop(context, false);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text("Invalid PIN")));
+                      }
                     } else {
-                      Navigator.pop(context, false);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Invalid PIN")));
+                      return;
                     }
-                  } else {
-                    return;
-                  }
-                },
-                child: const Text('Confirm',
-                    style: TextStyle(color: Colors.green)),
-              ),
-              TextButton(
+                  },
+                  text: 'Confirm',
+                  textColor: Colors.green,
+                  type: GFButtonType.outline,
+                  borderSide: const BorderSide(color: Colors.green)),
+              GFButton(
                 onPressed: () {
                   Navigator.pop(context, false);
                 },
-                child:
-                    const Text('Cancel', style: TextStyle(color: Colors.green)),
+                color: Colors.green,
+                text: 'Cancel',
+                borderSide: const BorderSide(color: Colors.green),
               )
             ],
           );
@@ -231,7 +233,7 @@ class _NoteLockingPageState extends State<NoteLockingPage> {
                 ),
               ),
               actions: <Widget>[
-                TextButton(
+                GFButton(
                     onPressed: () async {
                       String pin1 = controller1.text.trim().toString();
                       String pin2 = controller2.text.trim().toString();
@@ -260,14 +262,18 @@ class _NoteLockingPageState extends State<NoteLockingPage> {
                                 'Successfully configured not locking, you can now lock your notes, use the PIN submitted to unlock locked notes')));
                       }
                     },
-                    child: const Text('Set PIN',
-                        style: TextStyle(color: Colors.green))),
-                TextButton(
+                    text: "Set PIn",
+                  textColor: Colors.green,
+                  type: GFButtonType.outline,
+                  borderSide: const BorderSide(color: Colors.green)
+                ),
+                GFButton(
+                borderSide: const BorderSide(color: Colors.green),
+                    color: Colors.green,
                     onPressed: () {
                       Navigator.of(context).pop();
                     },
-                    child: const Text('Cancel',
-                        style: TextStyle(color: Colors.green)))
+                    text: "Cancel")
               ],
             );
           });
@@ -319,7 +325,7 @@ class _NoteLockingPageState extends State<NoteLockingPage> {
               keyboardType: TextInputType.number,
               maxLength: 4,
               decoration: InputDecoration(
-                label: const Icon(Icons.pin),
+                  label: const Icon(Icons.pin, color: Colors.green),
                   focusedBorder: OutlineInputBorder(
                       borderSide: const BorderSide(color: Colors.green),
                       borderRadius: BorderRadius.circular(12)),
@@ -328,7 +334,7 @@ class _NoteLockingPageState extends State<NoteLockingPage> {
                       borderRadius: BorderRadius.circular(12))),
             ),
             actions: <Widget>[
-              TextButton(
+              GFButton(
                   onPressed: () async {
                     FlutterSecureStorage storage = const FlutterSecureStorage();
                     String? pin = await storage.read(key: 'pin');
@@ -343,14 +349,17 @@ class _NoteLockingPageState extends State<NoteLockingPage> {
                       Navigator.of(context).pop(false);
                     }
                   },
-                  child: const Text('Confirm',
-                      style: TextStyle(color: Colors.green))),
-              TextButton(
+                  text: "Confirm",
+                  type: GFButtonType.outline,
+                  borderSide: const BorderSide(color: Colors.green),
+                  textColor: Colors.green),
+              GFButton(
                   onPressed: () {
                     Navigator.of(context).pop(false);
                   },
-                  child: const Text('Cancel',
-                      style: TextStyle(color: Colors.green))),
+                  text: 'Cancel',
+                  color: Colors.green,
+                  borderSide: const BorderSide(color: Colors.green)),
             ],
           );
         });
@@ -393,11 +402,14 @@ class _NoteLockingPageState extends State<NoteLockingPage> {
                     itemBuilder: (context, index) {
                       final lockedNote = lockedNotes[index];
                       return ListTile(
-                        leading: const Icon(Icons.note),
+                        leading:
+                            const Icon(Icons.edit_note, color: Colors.green),
                         title: Text(lockedNote.noteTitle),
                         subtitle: Text(lockedNote.noteType),
                         trailing: IconButton(
-                            onPressed: () {},
+                            onPressed: () {
+                              turnOffLockOnNote(lockedNote);
+                            },
                             icon: const Icon(Icons.lock_open)),
                       );
                     },
